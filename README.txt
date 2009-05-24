@@ -45,6 +45,12 @@
   Changelog
   ---------
   
+  0.1.2 (2009-05-24)
+  ------------------
+
+  * Renamed DZIDescriptor to DeepZoomImageDescriptor for
+    consistency with the OpenZoom SDK descriptor framework.
+  
   0.1.1 (2009-04-08)
   ------------------
 

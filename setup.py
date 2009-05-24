@@ -3,11 +3,11 @@
 from distutils.core import setup
 
 setup(name="deep-zoom-tools",
-      version="0.1.1",
+      version="0.1.2",
       description="Python tools for generating Deep Zoom images (DZI) and collections (DZC) for the use with Silverlight Deep Zoom, Seadragon Ajax, Seadragon Mobile and OpenZoom.",
       author="Daniel Gasienica",
       author_email="daniel@gasienica.ch",
-      download_url="http://open-zoom.googlecode.com/files/deep-zoom-tools-0.1.1.zip",
+      download_url="http://open-zoom.googlecode.com/files/deep-zoom-tools-0.1.2.zip",
       keywords="deepzoom seadragon dzi dzc seadragonajax seadragonmobile silverlightdeepzoom microsoft openzoom",
       url="http://code.google.com/p/open-zoom/",
       py_modules=["deepzoom"],

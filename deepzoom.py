@@ -54,7 +54,7 @@ image_format_map = {
     "png": "png",
     }
 
-class DZIDescriptor(object):
+class DeepZoomImageDescriptor(object):
     def __init__(self, width=None, height=None,
                  tile_size=254, tile_overlap=1, tile_format="jpg"):
         self.width = width
@@ -189,7 +189,7 @@ class ImageCreator(object):
         """Creates Deep Zoom image from source file and saves it to destination."""
         self.image = PIL.Image.open(source)
         width, height = self.image.size
-        self.descriptor = DZIDescriptor(width=width,
+        self.descriptor = DeepZoomImageDescriptor(width=width,
                                         height=height,
                                         tile_size=self.tile_size,
                                         tile_overlap=self.tile_overlap,
@@ -279,7 +279,7 @@ class CollectionCreator(object):
 
             for i in xrange(len(images)):
                 path = images[i]
-                descriptor = DZIDescriptor()
+                descriptor = DeepZoomImageDescriptor()
                 descriptor.open(path)
                 column, row = self._get_tile_position(i, level, self.tile_size)
                 tile_path = level_path + "/%s_%s.%s"%(column, row, self.tile_format)
@@ -310,7 +310,7 @@ class CollectionCreator(object):
 
         next_item_id = 0
         for path in images:
-            descriptor = DZIDescriptor()
+            descriptor = DeepZoomImageDescriptor()
             descriptor.open(path)
             id = next_item_id
             n = next_item_id
