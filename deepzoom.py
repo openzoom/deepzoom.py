@@ -69,7 +69,6 @@ class DeepZoomImageDescriptor(object):
         doc = xml.dom.minidom.parse(source)
         image = doc.getElementsByTagName("Image")[0]
         size = doc.getElementsByTagName("Size")[0]
-
         self.width = int(size.getAttribute("Width"))
         self.height = int(size.getAttribute("Height"))
         self.tile_size = int(image.getAttribute("TileSize"))
@@ -79,7 +78,6 @@ class DeepZoomImageDescriptor(object):
     def save(self, destination):
         """Save descriptor file."""
         file = open(destination, "w")
-
         doc = xml.dom.minidom.Document()
         image = doc.createElementNS(NS_DEEPZOOM, "Image")
         image.setAttribute("xmlns", NS_DEEPZOOM)
@@ -92,8 +90,6 @@ class DeepZoomImageDescriptor(object):
         image.appendChild(size)
         doc.appendChild(image)
         descriptor = doc.toxml(encoding="UTF-8")
-#        descriptor = doc.toprettyxml(indent="    ", encoding="UTF-8")
-
         file.write(descriptor)
         file.close()
 
@@ -129,18 +125,15 @@ class DeepZoomImageDescriptor(object):
     def get_tile_bounds(self, level, column, row):
         """Bounding box of the tile (x1, y1, x2, y2)"""
         assert 0 <= level and level < self.num_levels, "Invalid pyramid level"
-
         offset_x = 0 if column == 0 else self.tile_overlap
         offset_y = 0 if row    == 0 else self.tile_overlap
         x = (column * self.tile_size) - offset_x
         y = (row    * self.tile_size) - offset_y
-
         level_width, level_height = self.get_dimensions(level)
         w = self.tile_size + (1 if column == 0 else 2) * self.tile_overlap
         h = self.tile_size + (1 if row    == 0 else 2) * self.tile_overlap
         w = min(w, level_width  - x)
         h = min(h, level_height - y)
-
         return (x, y, x + w, y + h)
 
 
@@ -158,7 +151,7 @@ class Image(object):
 class ImageCreator(object):
     """Creates Deep Zoom images."""
     def __init__(self, tile_size=254, tile_overlap=1, tile_format="jpg",
-                 image_quality=0.95, resize_filter=None):
+                 image_quality=0.8, resize_filter=None, copy_metadata=False):
         self.tile_size = int(tile_size)
         self.tile_format = tile_format
         self.tile_overlap = _clamp(int(tile_overlap), 0, 10)
@@ -166,6 +159,7 @@ class ImageCreator(object):
         if not tile_format in image_format_map:
             self.tile_format = "jpg"
         self.resize_filter = resize_filter
+        self.copy_metadata = copy_metadata
 
     def get_image(self, level):
         """Returns the bitmap image at the given level."""
@@ -187,13 +181,14 @@ class ImageCreator(object):
 
     def create(self, source, destination):
         """Creates Deep Zoom image from source file and saves it to destination."""
+        #Plugin architecture
         self.image = PIL.Image.open(source)
         width, height = self.image.size
         self.descriptor = DeepZoomImageDescriptor(width=width,
-                                        height=height,
-                                        tile_size=self.tile_size,
-                                        tile_overlap=self.tile_overlap,
-                                        tile_format=self.tile_format)
+                                                  height=height,
+                                                  tile_size=self.tile_size,
+                                                  tile_overlap=self.tile_overlap,
+                                                  tile_format=self.tile_format)
         destination = _expand(destination)
         image_name = os.path.splitext(os.path.basename(destination))[0]
         dir_name = os.path.dirname(destination)
@@ -221,8 +216,8 @@ class ImageCreator(object):
 
 class CollectionCreator(object):
     """Creates Deep Zoom collections."""
-    def __init__(self, image_quality=0.95, tile_size=254,
-                 max_level=8, tile_format="jpg", copy_metadata=True):
+    def __init__(self, image_quality=0.8, tile_size=254,
+                 max_level=8, tile_format="jpg", copy_metadata=False):
         self.image_quality = image_quality
         self.tile_size = tile_size
         self.max_level = max_level
@@ -337,7 +332,6 @@ class CollectionCreator(object):
         doc.appendChild(collection)
 
         descriptor = doc.toxml(encoding="UTF-8")
-#        descriptor = doc.toprettyxml(indent="  ", encoding="UTF-8")
         file = open(destination, "w")
         file.write(descriptor)
         file.close()
@@ -376,7 +370,7 @@ def main():
     parser.add_option("-o", "--tile_overlap", dest="tile_overlap", type="int",
                       default=1, help="Overlap of the tiles in pixels (0-10). Default: 1")
     parser.add_option("-q", "--image_quality", dest="image_quality", type="float",
-                      default=0.95, help="Quality of the image output (0-1). Default: 0.95")
+                      default=0.8, help="Quality of the image output (0-1). Default: 0.8")
     parser.add_option("-r", "--resize_filter", dest="resize_filter", default="antialias",
                       help="Type of filter for resizing (bicubic, nearest, \
                             bilinear, antialias (best). Default: antialias")
