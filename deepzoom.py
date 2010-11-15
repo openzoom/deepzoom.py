@@ -1,9 +1,9 @@
 #
 #  Deep Zoom Tools
 #
-#  Copyright (c) 2008-2009, OpenZoom <http://openzoom.org/>
-#  Copyright (c) 2008-2009, Daniel Gasienica <daniel@gasienica.ch>
-#  Copyright (c) 2008,      Kapil Thangavelu <kapil.foss@gmail.com>
+#  Copyright (c) 2008-2010, OpenZoom <http://openzoom.org/>
+#  Copyright (c) 2008-2010, Daniel Gasienica <daniel@gasienica.ch>
+#  Copyright (c) 2008, Kapil Thangavelu <kapil.foss@gmail.com>
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without modification,
@@ -189,14 +189,15 @@ class ImageCreator(object):
                                                   tile_size=self.tile_size,
                                                   tile_overlap=self.tile_overlap,
                                                   tile_format=self.tile_format)
-        destination = _expand(destination)
+        destination = _expand_path(destination)
         image_name = os.path.splitext(os.path.basename(destination))[0]
         dir_name = os.path.dirname(destination)
-        image_files = _ensure(os.path.join(_ensure(dir_name), "%s_files"%image_name))
+        image_files = _get_or_create_path(os.path.join(_get_or_create_path(dir_name),
+                                          "%s_files"%image_name))
 
         # Create tiles
         for level in xrange(self.descriptor.num_levels):
-            level_dir = _ensure(os.path.join(image_files, str(level)))
+            level_dir = _get_or_create_path(os.path.join(image_files, str(level)))
             level_image = self.get_image(level)
             for (column, row) in self.tiles(level):
                 bounds = self.descriptor.get_tile_bounds(level, column, row)
@@ -206,9 +207,10 @@ class ImageCreator(object):
                                          "%s_%s.%s"%(column, row, format))
                 tile_file = open(tile_path, "wb")
                 if self.descriptor.tile_format == "jpg":
-                    tile.save(tile_file, "JPEG",
-                              quality=int(self.image_quality * 100))
-                tile.save(tile_file)
+                    jpeg_quality = int(self.image_quality * 100)
+                    tile.save(tile_file, "JPEG", quality=jpeg_quality)
+                else:
+                    tile.save(tile_file)
 
         # Create descriptor
         self.descriptor.save(destination)
@@ -216,13 +218,13 @@ class ImageCreator(object):
 
 class CollectionCreator(object):
     """Creates Deep Zoom collections."""
-    def __init__(self, image_quality=0.8, tile_size=254,
-                 max_level=8, tile_format="jpg", copy_metadata=False):
+    def __init__(self, image_quality=0.8, tile_size=256,
+                 max_level=7, tile_format="jpg", copy_metadata=False):
         self.image_quality = image_quality
         self.tile_size = tile_size
         self.max_level = max_level
         self.tile_format = tile_format
-        self.copy_metadata = copy_metadata #unused
+        self.copy_metadata = copy_metadata #TODO: unused
 
     def _get_position(self, z_order):
         """Returns position (column, row) from given Z-order (Morton number.)"""
@@ -339,13 +341,13 @@ class CollectionCreator(object):
 
 ################################################################################
 
-def _expand(d):
-    return os.path.abspath(os.path.expanduser(os.path.expandvars(d)))
+def _expand_path(path):
+    return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
 
-def _ensure(d):
-    if not os.path.exists(d):
-        os.mkdir(d)
-    return d
+def _get_or_create_path(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
 
 def _clamp(val, min, max):
     if val < min:
@@ -380,7 +382,7 @@ def main():
     if not args:
         parser.print_help()
         sys.exit(1)
-    source = _expand(args[0])
+    source = _expand_path(args[0])
 
     if not os.path.exists(source):
         print "Invalid File", source

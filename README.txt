@@ -45,6 +45,14 @@
   Changelog
   ---------
   
+  0.9 (2010-11-14)
+  ----------------
+  
+  Fixed issue #1: Bug in the tile saving in ImageCreator.create.
+  Set CollectionCreator max_level default to 7.
+  Set CollectionCreator tile_size default to 256.
+  
+  
   0.1.2 (2009-05-24)
   ------------------
 
@@ -60,5 +68,5 @@
   
   0.1.0 (2009-03-23)
   ------------------
-  ÇFirst release. Nothing is new, or everything is new,
-   depending on how you think about it.È -- Google
+  First release. Nothing is new, or everything is new,
+  depending on how you think about it. -- Google
