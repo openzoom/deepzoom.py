@@ -38,6 +38,7 @@ import math
 import optparse
 import os
 import PIL.Image
+import time
 import urllib
 
 try:
@@ -76,7 +77,7 @@ class DeepZoomImageDescriptor(object):
 
     def open(self, source):
         """Intialize descriptor from an existing descriptor file."""
-        doc = xml.dom.minidom.parse(urllib.urlopen(source))
+        doc = xml.dom.minidom.parse(safe_open(source))
         image = doc.getElementsByTagName("Image")[0]
         size = doc.getElementsByTagName("Size")[0]
         self.width = int(size.getAttribute("Width"))
@@ -146,6 +147,28 @@ class DeepZoomImageDescriptor(object):
         h = min(h, level_height - y)
         return (x, y, x + w, y + h)
 
+class DeepZoomCollectionDescriptor(object):
+    def __init__(self, image_quality=0.8, tile_size=256,
+                 max_level=7, tile_format="jpg", copy_metadata=False):
+        self.image_quality = image_quality
+        self.tile_size = tile_size
+        self.max_level = max_level
+        self.tile_format = tile_format
+        # TODO
+        self.copy_metadata = copy_metadata
+
+    def open(self, source):
+        """Intialize descriptor from an existing descriptor file."""
+        doc = xml.dom.minidom.parse(safe_open(source))
+        collection = doc.getElementsByTagName("Collection")[0]
+        self.max_level = image.getAttribute("MaxLevel")
+        self.image_quality = int(size.getAttribute("Quality"))
+        self.tile_size = int(size.getAttribute("TileSize"))
+        self.tile_format = int(image.getAttribute("Format"))
+        
+        items = doc.getElementsByTagName("I")
+
+
 
 class ImageCreator(object):
     """Creates Deep Zoom images."""
@@ -180,7 +203,7 @@ class ImageCreator(object):
 
     def create(self, source, destination):
         """Creates Deep Zoom image from source file and saves it to destination."""
-        self.image = PIL.Image.open(StringIO.StringIO(urllib.urlopen(source).read()))
+        self.image = PIL.Image.open(safe_open(source))
         width, height = self.image.size
         self.descriptor = DeepZoomImageDescriptor(width=width,
                                                   height=height,
@@ -256,6 +279,10 @@ class CollectionCreator(object):
         self._create_pyramid(images, destination)
         self._create_descriptor(images, destination)
 
+    def append_image(self, image, destination):
+        # TODO
+        pass
+
     def _create_pyramid(self, images, destination):
         """Creates a Deep Zoom collection pyramid from a list of images."""
         pyramid_path = _get_or_create_path(_get_files_path(destination))
@@ -276,15 +303,14 @@ class CollectionCreator(object):
                 tile_image = PIL.Image.open(tile_path)
                 source_path = "%s/%s/%s_%s.%s"%(_get_files_path(dzi_path),
                                                 level, 0, 0,
-                                                descriptor.tile_format)  
+                                                descriptor.tile_format)
                 if os.path.exists(source_path):
                     # Local
-                    source_image = PIL.Image.open(source_path)
+                    source_image = PIL.Image.open(safe_open(source_path))
                 else:
                     # Remote
                     if level == self.max_level:
-                        f = urllib.urlopen(source_path)
-                        source_image = PIL.Image.open(StringIO.StringIO(f.read()))
+                        source_image = PIL.Image.open(safe_open(source_path))
                         w, h = source_image.size
                     else:
                         w = int(math.ceil(w * 0.5))
@@ -295,6 +321,10 @@ class CollectionCreator(object):
                 y = (row % images_per_tile) * level_size
                 tile_image.paste(source_image, (x, y))
                 tile_image.save(tile_path)
+
+    def _add_image(self, image, collection):
+        # TODO
+        pass
 
     def _create_descriptor(self, images, destination):
         """Creates a Deep Zoom collection descriptor from a list of images."""
@@ -341,6 +371,30 @@ class CollectionCreator(object):
 
 ################################################################################
 
+def retry(attempts, backoff=2):
+    """Retries a function or method until it returns or
+    the number of attempts has been reached."""
+
+    if backoff <= 1:
+        raise ValueError("backoff must be greater than 1")
+
+    attempts = int(math.floor(attempts))
+    if attempts < 0:
+        raise ValueError("attempts must be 0 or greater")
+
+    def deco_retry(f):
+        def f_retry(*args, **kwargs):
+            last_exception = None
+            for _ in xrange(attempts):
+                try:
+                    return f(*args, **kwargs)
+                except Exception as exception:
+                    last_exception = exception
+                    time.sleep(backoff**(attempts + 1))
+            raise last_exception
+        return f_retry
+    return deco_retry
+
 def _get_or_create_path(path):
     if not os.path.exists(path):
         os.makedirs(path)
@@ -355,6 +409,10 @@ def _clamp(val, min, max):
 
 def _get_files_path(path):
     return os.path.splitext(path)[0] + "_files"
+
+@retry(6)
+def safe_open(path):
+    return StringIO.StringIO(urllib.urlopen(path).read())
 
 ################################################################################
 
