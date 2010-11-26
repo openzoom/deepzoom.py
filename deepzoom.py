@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #
 #  Deep Zoom Tools
 #
@@ -36,6 +38,14 @@ import math
 import optparse
 import os
 import PIL.Image
+import urllib
+
+try:
+    import cStringIO
+    StringIO = cStringIO
+except ImportError:
+    import StringIO
+
 import sys
 import xml.dom.minidom
 
@@ -66,7 +76,7 @@ class DeepZoomImageDescriptor(object):
 
     def open(self, source):
         """Intialize descriptor from an existing descriptor file."""
-        doc = xml.dom.minidom.parse(source)
+        doc = xml.dom.minidom.parse(urllib.urlopen(source))
         image = doc.getElementsByTagName("Image")[0]
         size = doc.getElementsByTagName("Size")[0]
         self.width = int(size.getAttribute("Width"))
@@ -126,26 +136,15 @@ class DeepZoomImageDescriptor(object):
         """Bounding box of the tile (x1, y1, x2, y2)"""
         assert 0 <= level and level < self.num_levels, "Invalid pyramid level"
         offset_x = 0 if column == 0 else self.tile_overlap
-        offset_y = 0 if row    == 0 else self.tile_overlap
+        offset_y = 0 if row == 0 else self.tile_overlap
         x = (column * self.tile_size) - offset_x
-        y = (row    * self.tile_size) - offset_y
+        y = (row * self.tile_size) - offset_y
         level_width, level_height = self.get_dimensions(level)
         w = self.tile_size + (1 if column == 0 else 2) * self.tile_overlap
-        h = self.tile_size + (1 if row    == 0 else 2) * self.tile_overlap
+        h = self.tile_size + (1 if row == 0 else 2) * self.tile_overlap
         w = min(w, level_width  - x)
         h = min(h, level_height - y)
         return (x, y, x + w, y + h)
-
-
-class Image(object):
-    """Represents a Deep Zoom image."""
-    def __init__(self, path):
-        self.path = path
-
-    viewportOrigin = (0.0, 0.0)
-    viewportWidth = 1.0
-    max_viewport_width = None
-    min_viewport_width = None
 
 
 class ImageCreator(object):
@@ -181,21 +180,16 @@ class ImageCreator(object):
 
     def create(self, source, destination):
         """Creates Deep Zoom image from source file and saves it to destination."""
-        #Plugin architecture
-        self.image = PIL.Image.open(source)
+        self.image = PIL.Image.open(StringIO.StringIO(urllib.urlopen(source).read()))
         width, height = self.image.size
         self.descriptor = DeepZoomImageDescriptor(width=width,
                                                   height=height,
                                                   tile_size=self.tile_size,
                                                   tile_overlap=self.tile_overlap,
                                                   tile_format=self.tile_format)
-        destination = _expand_path(destination)
-        image_name = os.path.splitext(os.path.basename(destination))[0]
-        dir_name = os.path.dirname(destination)
-        image_files = _get_or_create_path(os.path.join(_get_or_create_path(dir_name),
-                                          "%s_files"%image_name))
 
         # Create tiles
+        image_files = _get_or_create_path(_get_files_path(destination))
         for level in xrange(self.descriptor.num_levels):
             level_dir = _get_or_create_path(os.path.join(image_files, str(level)))
             level_image = self.get_image(level)
@@ -264,47 +258,56 @@ class CollectionCreator(object):
 
     def _create_pyramid(self, images, destination):
         """Creates a Deep Zoom collection pyramid from a list of images."""
-        pyramid_path = os.path.splitext(destination)[0] + "_files"
-        if not os.path.exists(pyramid_path):
-            os.mkdir(pyramid_path)
-
-        for level in xrange(self.max_level + 1):
-            level_size = 2**level
-            level_path = pyramid_path + "/" + str(level)
-            if not os.path.exists(level_path):
-                os.mkdir(level_path)
-
-            for i in xrange(len(images)):
-                path = images[i]
-                descriptor = DeepZoomImageDescriptor()
-                descriptor.open(path)
+        pyramid_path = _get_or_create_path(_get_files_path(destination))
+        for i in xrange(len(images)):
+            dzi_path = images[i]
+            descriptor = DeepZoomImageDescriptor()
+            descriptor.open(dzi_path)
+            for level in reversed(xrange(self.max_level + 1)):
+                level_size = 2**level
+                images_per_tile = int(math.floor(self.tile_size / level_size))
+                level_path = _get_or_create_path("%s/%s"%(pyramid_path, level))
                 column, row = self._get_tile_position(i, level, self.tile_size)
-                tile_path = level_path + "/%s_%s.%s"%(column, row, self.tile_format)
+                tile_path = "%s/%s_%s.%s"%(level_path, column, row, self.tile_format)
                 if not os.path.exists(tile_path):
                     tile_image = PIL.Image.new("RGB", (self.tile_size, self.tile_size))
-                    tile_image.save(tile_path, "JPEG", quality=int(self.image_quality * 100))
+                    q = int(self.image_quality * 100)
+                    tile_image.save(tile_path, "JPEG", quality=q)
                 tile_image = PIL.Image.open(tile_path)
-                source_path = open(os.path.splitext(path)[0] + "_files/" + str(level) + "/%s_%s.%s"%(0, 0, descriptor.tile_format))
-                source_image = PIL.Image.open(source_path)
-                images_per_tile = int(math.floor(self.tile_size / level_size))
+                source_path = "%s/%s/%s_%s.%s"%(_get_files_path(dzi_path),
+                                                level, 0, 0,
+                                                descriptor.tile_format)  
+                if os.path.exists(source_path):
+                    # Local
+                    source_image = PIL.Image.open(source_path)
+                else:
+                    # Remote
+                    if level == self.max_level:
+                        f = urllib.urlopen(source_path)
+                        source_image = PIL.Image.open(StringIO.StringIO(f.read()))
+                        w, h = source_image.size
+                    else:
+                        w = int(math.ceil(w * 0.5))
+                        h = int(math.ceil(h * 0.5))
+                        source_image.thumbnail((w, h), PIL.Image.ANTIALIAS)
                 column, row = self._get_position(i)
                 x = (column % images_per_tile) * level_size
                 y = (row % images_per_tile) * level_size
-                tile_image.paste(source_image, (x,y))
+                tile_image.paste(source_image, (x, y))
                 tile_image.save(tile_path)
 
     def _create_descriptor(self, images, destination):
         """Creates a Deep Zoom collection descriptor from a list of images."""
         doc = xml.dom.minidom.Document()
+        # Collection
         collection = doc.createElementNS(NS_DEEPZOOM, "Collection")
         collection.setAttribute("xmlns", NS_DEEPZOOM)
         collection.setAttribute("MaxLevel", str(self.max_level))
         collection.setAttribute("TileSize", str(self.tile_size))
         collection.setAttribute("Format", str(self.tile_format))
         collection.setAttribute("Quality", str(self.image_quality))
-
+        # Items
         items = doc.createElementNS(NS_DEEPZOOM, "Items")
-
         next_item_id = 0
         for path in images:
             descriptor = DeepZoomImageDescriptor()
@@ -314,12 +317,12 @@ class CollectionCreator(object):
             source = path # relative path
             width = descriptor.width
             height = descriptor.height
-
+            # Item
             item = doc.createElementNS(NS_DEEPZOOM, "I")
             item.setAttribute("Id", str(id))
             item.setAttribute("N", str(n))
             item.setAttribute("Source", str(source))
-
+            #Size
             size = doc.createElementNS(NS_DEEPZOOM, "Size")
             size.setAttribute("Width", str(width))
             size.setAttribute("Height", str(height))
@@ -327,9 +330,7 @@ class CollectionCreator(object):
 
             items.appendChild(item)
             next_item_id += 1
-
         collection.setAttribute("NextItemId", str(next_item_id))
-
         collection.appendChild(items)
         doc.appendChild(collection)
 
@@ -338,11 +339,7 @@ class CollectionCreator(object):
         file.write(descriptor)
         file.close()
 
-
 ################################################################################
-
-def _expand_path(path):
-    return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
 
 def _get_or_create_path(path):
     if not os.path.exists(path):
@@ -355,6 +352,9 @@ def _clamp(val, min, max):
     elif val > max:
         return max
     return val
+
+def _get_files_path(path):
+    return os.path.splitext(path)[0] + "_files"
 
 ################################################################################
 
@@ -382,14 +382,14 @@ def main():
     if not args:
         parser.print_help()
         sys.exit(1)
-    source = _expand_path(args[0])
 
-    if not os.path.exists(source):
-        print "Invalid File", source
-        sys.exit(1)
+    source = args[0]
 
     if not options.destination:
-        options.destination = os.path.splitext(source)[0] + ".dzi"
+        if os.path.exists(source):
+            options.destination = os.path.splitext(source)[0] + ".dzi"
+        else:
+            options.destination = os.path.splitext(os.path.basename(source))[0] + ".dzi"
     if options.resize_filter and options.resize_filter in resize_filter_map:
         options.resize_filter = resize_filter_map[options.resize_filter]
 
@@ -397,6 +397,7 @@ def main():
                            tile_format=options.tile_format,
                            image_quality=options.image_quality,
                            resize_filter=options.resize_filter)
+
     creator.create(source, options.destination)
 
 if __name__ == "__main__":
