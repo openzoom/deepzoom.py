@@ -50,9 +50,10 @@ except ImportError:
 import sys
 import xml.dom.minidom
 
+
 NS_DEEPZOOM = "http://schemas.microsoft.com/deepzoom/2008"
 
-resize_filter_map = {
+RESIZE_FILTER_MAP = {
     "cubic": PIL.Image.CUBIC,
     "bilinear": PIL.Image.BILINEAR,
     "bicubic": PIL.Image.BICUBIC,
@@ -60,10 +61,11 @@ resize_filter_map = {
     "antialias": PIL.Image.ANTIALIAS,
     }
 
-image_format_map = {
+IMAGE_FORMAT_MAP = {
     "jpg": "jpg",
     "png": "png",
     }
+
 
 class DeepZoomImageDescriptor(object):
     def __init__(self, width=None, height=None,
@@ -147,27 +149,42 @@ class DeepZoomImageDescriptor(object):
         h = min(h, level_height - y)
         return (x, y, x + w, y + h)
 
+
 class DeepZoomCollectionDescriptor(object):
     def __init__(self, image_quality=0.8, tile_size=256,
-                 max_level=7, tile_format="jpg", copy_metadata=False):
+                 max_level=7, tile_format="jpg"):
         self.image_quality = image_quality
         self.tile_size = tile_size
         self.max_level = max_level
         self.tile_format = tile_format
-        # TODO
-        self.copy_metadata = copy_metadata
+        self.items = []
 
     def open(self, source):
         """Intialize descriptor from an existing descriptor file."""
         doc = xml.dom.minidom.parse(safe_open(source))
         collection = doc.getElementsByTagName("Collection")[0]
-        self.max_level = image.getAttribute("MaxLevel")
-        self.image_quality = int(size.getAttribute("Quality"))
-        self.tile_size = int(size.getAttribute("TileSize"))
-        self.tile_format = int(image.getAttribute("Format"))
-        
-        items = doc.getElementsByTagName("I")
+        self.max_level = int(collection.getAttribute("MaxLevel"))
+        self.image_quality = float(collection.getAttribute("Quality"))
+        self.tile_size = int(collection.getAttribute("TileSize"))
+        self.tile_format = collection.getAttribute("Format")
+        self.items = [DeepZoomCollectionItem.from_xml(item) for item in doc.getElementsByTagName("I")]
 
+
+class DeepZoomCollectionItem(object):
+    def __init__(self, id, source, width, height):
+        self.id = id
+        self.source = source
+        self.width = width
+        self.height = height
+
+    @classmethod
+    def from_xml(cls, xml):
+        id = int(xml.getAttribute("Id"))
+        source = xml.getAttribute("Source")
+        size = xml.getElementsByTagName("Size")[0]
+        width = int(size.getAttribute("Width"))
+        height = int(size.getAttribute("Height"))
+        return DeepZoomCollectionItem(id, source, width, height)
 
 
 class ImageCreator(object):
@@ -178,7 +195,7 @@ class ImageCreator(object):
         self.tile_format = tile_format
         self.tile_overlap = _clamp(int(tile_overlap), 0, 10)
         self.image_quality = _clamp(image_quality, 0, 1.0)
-        if not tile_format in image_format_map:
+        if not tile_format in IMAGE_FORMAT_MAP:
             self.tile_format = "jpg"
         self.resize_filter = resize_filter
         self.copy_metadata = copy_metadata
@@ -190,9 +207,9 @@ class ImageCreator(object):
         # don't transform to what we already have
         if self.descriptor.width == width and self.descriptor.height == height:
             return self.image
-        if (self.resize_filter is None) or (self.resize_filter not in resize_filter_map):
+        if (self.resize_filter is None) or (self.resize_filter not in RESIZE_FILTER_MAP):
             return self.image.resize((width, height), PIL.Image.ANTIALIAS)
-        return self.image.resize((width, height), resize_filter_map[self.resize_filter])
+        return self.image.resize((width, height), RESIZE_FILTER_MAP[self.resize_filter])
 
     def tiles(self, level):
         """Iterator for all tiles in the given level. Returns (column, row) of a tile."""
@@ -357,7 +374,6 @@ class CollectionCreator(object):
             size.setAttribute("Width", str(width))
             size.setAttribute("Height", str(height))
             item.appendChild(size)
-
             items.appendChild(item)
             next_item_id += 1
         collection.setAttribute("NextItemId", str(next_item_id))
@@ -448,8 +464,8 @@ def main():
             options.destination = os.path.splitext(source)[0] + ".dzi"
         else:
             options.destination = os.path.splitext(os.path.basename(source))[0] + ".dzi"
-    if options.resize_filter and options.resize_filter in resize_filter_map:
-        options.resize_filter = resize_filter_map[options.resize_filter]
+    if options.resize_filter and options.resize_filter in RESIZE_FILTER_MAP:
+        options.resize_filter = RESIZE_FILTER_MAP[options.resize_filter]
 
     creator = ImageCreator(tile_size=options.tile_size,
                            tile_format=options.tile_format,
