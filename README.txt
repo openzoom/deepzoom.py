@@ -15,7 +15,7 @@
   ------------
   
   * Python Imaging Library (PIL)
-    <http://www.pythonware.com/products/pil/>
+    <http://www.pythonware.com/products/pil>
 
 
 --------------------------------------------------------------------------------
@@ -24,7 +24,7 @@
   
   Daniel Gasienica
   <daniel@gasienica.ch>
-  <http://gasi.ch/>
+  <http://gasi.ch>
   
   and
   
@@ -33,7 +33,7 @@
   
   ----------------------------------------------------------------------------
 
-  Powered by OpenZoom <http://openzoom.org/>
+  Powered by OpenZoom <http://openzoom.org>
 
 --------------------------------------------------------------------------------
 
