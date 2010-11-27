@@ -204,7 +204,7 @@ class DeepZoomCollectionDescriptor(object):
         self.items.append(item)
         self.next_item_id += 1
 
-    def save(self, pretty_xml=False):
+    def save(self, pretty_print_xml=False):
         """Save collection descriptor."""
         collection = self.doc.getElementsByTagName("Collection")[0]
         items = self.doc.getElementsByTagName("Items")[0]
@@ -223,7 +223,7 @@ class DeepZoomCollectionDescriptor(object):
             self._append_image(item.source, item.id)
         collection.setAttribute("NextItemId", str(self.next_item_id))
         with open(self.source, "w") as f:
-            if pretty_xml:
+            if pretty_print_xml:
                 xml = self.doc.toprettyxml(encoding="UTF-8")
             else:
                 xml = self.doc.toxml(encoding="UTF-8")
