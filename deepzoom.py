@@ -54,25 +54,25 @@ import xml.dom.minidom
 from collections import deque
 
 
-NS_DEEPZOOM = "http://schemas.microsoft.com/deepzoom/2008"
+NS_DEEPZOOM = 'http://schemas.microsoft.com/deepzoom/2008'
 
 RESIZE_FILTER_MAP = {
-    "cubic": PIL.Image.CUBIC,
-    "bilinear": PIL.Image.BILINEAR,
-    "bicubic": PIL.Image.BICUBIC,
-    "nearest": PIL.Image.NEAREST,
-    "antialias": PIL.Image.ANTIALIAS,
+    'cubic': PIL.Image.CUBIC,
+    'bilinear': PIL.Image.BILINEAR,
+    'bicubic': PIL.Image.BICUBIC,
+    'nearest': PIL.Image.NEAREST,
+    'antialias': PIL.Image.ANTIALIAS,
     }
 
 IMAGE_FORMAT_MAP = {
-    "jpg": "jpg",
-    "png": "png",
+    'jpg': 'jpg',
+    'png': 'png',
     }
 
 
 class DeepZoomImageDescriptor(object):
     def __init__(self, width=None, height=None,
-                 tile_size=254, tile_overlap=1, tile_format="jpg"):
+                 tile_size=254, tile_overlap=1, tile_format='jpg'):
         self.width = width
         self.height = height
         self.tile_size = tile_size
@@ -83,29 +83,29 @@ class DeepZoomImageDescriptor(object):
     def open(self, source):
         """Intialize descriptor from an existing descriptor file."""
         doc = xml.dom.minidom.parse(safe_open(source))
-        image = doc.getElementsByTagName("Image")[0]
-        size = doc.getElementsByTagName("Size")[0]
-        self.width = int(size.getAttribute("Width"))
-        self.height = int(size.getAttribute("Height"))
-        self.tile_size = int(image.getAttribute("TileSize"))
-        self.tile_overlap = int(image.getAttribute("Overlap"))
-        self.tile_format = image.getAttribute("Format")
+        image = doc.getElementsByTagName('Image')[0]
+        size = doc.getElementsByTagName('Size')[0]
+        self.width = int(size.getAttribute('Width'))
+        self.height = int(size.getAttribute('Height'))
+        self.tile_size = int(image.getAttribute('TileSize'))
+        self.tile_overlap = int(image.getAttribute('Overlap'))
+        self.tile_format = image.getAttribute('Format')
 
     def save(self, destination):
         """Save descriptor file."""
-        file = open(destination, "w")
+        file = open(destination, 'w')
         doc = xml.dom.minidom.Document()
-        image = doc.createElementNS(NS_DEEPZOOM, "Image")
-        image.setAttribute("xmlns", NS_DEEPZOOM)
-        image.setAttribute("TileSize", str(self.tile_size))
-        image.setAttribute("Overlap", str(self.tile_overlap))
-        image.setAttribute("Format", str(self.tile_format))
-        size = doc.createElementNS(NS_DEEPZOOM, "Size")
-        size.setAttribute("Width", str(self.width))
-        size.setAttribute("Height", str(self.height))
+        image = doc.createElementNS(NS_DEEPZOOM, 'Image')
+        image.setAttribute('xmlns', NS_DEEPZOOM)
+        image.setAttribute('TileSize', str(self.tile_size))
+        image.setAttribute('Overlap', str(self.tile_overlap))
+        image.setAttribute('Format', str(self.tile_format))
+        size = doc.createElementNS(NS_DEEPZOOM, 'Size')
+        size.setAttribute('Width', str(self.width))
+        size.setAttribute('Height', str(self.height))
         image.appendChild(size)
         doc.appendChild(image)
-        descriptor = doc.toxml(encoding="UTF-8")
+        descriptor = doc.toxml(encoding='UTF-8')
         file.write(descriptor)
         file.close()
 
@@ -119,13 +119,13 @@ class DeepZoomImageDescriptor(object):
 
     def get_scale(self, level):
         """Scale of a pyramid level."""
-        assert 0 <= level and level < self.num_levels, "Invalid pyramid level"
+        assert 0 <= level and level < self.num_levels, 'Invalid pyramid level'
         max_level = self.num_levels - 1
         return math.pow(0.5, max_level - level)
 
     def get_dimensions(self, level):
         """Dimensions of level (width, height)"""
-        assert 0 <= level and level < self.num_levels, "Invalid pyramid level"
+        assert 0 <= level and level < self.num_levels, 'Invalid pyramid level'
         scale = self.get_scale(level)
         width = int(math.ceil(self.width * scale))
         height = int(math.ceil(self.height * scale))
@@ -133,14 +133,14 @@ class DeepZoomImageDescriptor(object):
 
     def get_num_tiles(self, level):
         """Number of tiles (columns, rows)"""
-        assert 0 <= level and level < self.num_levels, "Invalid pyramid level"
+        assert 0 <= level and level < self.num_levels, 'Invalid pyramid level'
         w, h = self.get_dimensions( level )
         return (int(math.ceil(float(w) / self.tile_size)),
                 int(math.ceil(float(h) / self.tile_size)))
 
     def get_tile_bounds(self, level, column, row):
         """Bounding box of the tile (x1, y1, x2, y2)"""
-        assert 0 <= level and level < self.num_levels, "Invalid pyramid level"
+        assert 0 <= level and level < self.num_levels, 'Invalid pyramid level'
         offset_x = 0 if column == 0 else self.tile_overlap
         offset_y = 0 if row == 0 else self.tile_overlap
         x = (column * self.tile_size) - offset_x
@@ -153,9 +153,9 @@ class DeepZoomImageDescriptor(object):
         return (x, y, x + w, y + h)
 
 
-class DeepZoomCollectionDescriptor(object):
+class DeepZoomCollection(object):
     def __init__(self, filename, image_quality=0.8, max_level=7,
-                tile_size=256, tile_format="jpg", items=[]):
+                tile_size=256, tile_format='jpg', items=[]):
         self.source = filename
         self.image_quality = image_quality
         self.tile_size = tile_size
@@ -165,35 +165,35 @@ class DeepZoomCollectionDescriptor(object):
         self.next_item_id = len(self.items)
         # XML
         self.doc = xml.dom.minidom.Document()
-        collection = self.doc.createElementNS(NS_DEEPZOOM, "Collection")
-        collection.setAttribute("xmlns", NS_DEEPZOOM)
-        collection.setAttribute("MaxLevel", str(self.max_level))
-        collection.setAttribute("TileSize", str(self.tile_size))
-        collection.setAttribute("Format", str(self.tile_format))
-        collection.setAttribute("Quality", str(self.image_quality))
-        items = self.doc.createElementNS(NS_DEEPZOOM, "Items")
+        collection = self.doc.createElementNS(NS_DEEPZOOM, 'Collection')
+        collection.setAttribute('xmlns', NS_DEEPZOOM)
+        collection.setAttribute('MaxLevel', str(self.max_level))
+        collection.setAttribute('TileSize', str(self.tile_size))
+        collection.setAttribute('Format', str(self.tile_format))
+        collection.setAttribute('Quality', str(self.image_quality))
+        items = self.doc.createElementNS(NS_DEEPZOOM, 'Items')
         collection.appendChild(items)
-        collection.setAttribute("NextItemId", str(self.next_item_id))
+        collection.setAttribute('NextItemId', str(self.next_item_id))
         self.doc.appendChild(collection)
 
     @classmethod
-    def from_file(self, source):
+    def from_file(self, filename):
         """Open collection descriptor."""
-        doc = xml.dom.minidom.parse(safe_open(source))
-        collection = doc.getElementsByTagName("Collection")[0]
-        image_quality = float(collection.getAttribute("Quality"))
-        max_level = int(collection.getAttribute("MaxLevel"))
-        tile_size = int(collection.getAttribute("TileSize"))
-        tile_format = collection.getAttribute("Format")
+        doc = xml.dom.minidom.parse(safe_open(filename))
+        collection = doc.getElementsByTagName('Collection')[0]
+        image_quality = float(collection.getAttribute('Quality'))
+        max_level = int(collection.getAttribute('MaxLevel'))
+        tile_size = int(collection.getAttribute('TileSize'))
+        tile_format = collection.getAttribute('Format')
         items = [DeepZoomCollectionItem.from_xml(item) for item
-                          in doc.getElementsByTagName("I")]
+                    in doc.getElementsByTagName('I')]
 
-        collection = DeepZoomCollectionDescriptor(source,
-                                                  image_quality=image_quality,
-                                                  max_level=max_level,
-                                                  tile_size=tile_size,
-                                                  tile_format=tile_format,
-                                                  items=items)
+        collection = DeepZoomCollection(filename,
+                                        image_quality=image_quality,
+                                        max_level=max_level,
+                                        tile_size=tile_size,
+                                        tile_format=tile_format,
+                                        items=items)
         return collection
 
     def append(self, source):
@@ -206,27 +206,27 @@ class DeepZoomCollectionDescriptor(object):
 
     def save(self, pretty_print_xml=False):
         """Save collection descriptor."""
-        collection = self.doc.getElementsByTagName("Collection")[0]
-        items = self.doc.getElementsByTagName("Items")[0]
+        collection = self.doc.getElementsByTagName('Collection')[0]
+        items = self.doc.getElementsByTagName('Items')[0]
         while len(self.items) > 0:
             item = self.items.popleft()
-            i = self.doc.createElementNS(NS_DEEPZOOM, "I")
-            i.setAttribute("Id", str(item.id))
-            i.setAttribute("N", str(item.id))
-            i.setAttribute("Source", item.source)
+            i = self.doc.createElementNS(NS_DEEPZOOM, 'I')
+            i.setAttribute('Id', str(item.id))
+            i.setAttribute('N', str(item.id))
+            i.setAttribute('Source', item.source)
             # Size
-            size = self.doc.createElementNS(NS_DEEPZOOM, "Size")
-            size.setAttribute("Width", str(item.width))
-            size.setAttribute("Height", str(item.height))
+            size = self.doc.createElementNS(NS_DEEPZOOM, 'Size')
+            size.setAttribute('Width', str(item.width))
+            size.setAttribute('Height', str(item.height))
             i.appendChild(size)
             items.appendChild(i)
             self._append_image(item.source, item.id)
-        collection.setAttribute("NextItemId", str(self.next_item_id))
-        with open(self.source, "w") as f:
+        collection.setAttribute('NextItemId', str(self.next_item_id))
+        with open(self.source, 'w') as f:
             if pretty_print_xml:
-                xml = self.doc.toprettyxml(encoding="UTF-8")
+                xml = self.doc.toprettyxml(encoding='UTF-8')
             else:
-                xml = self.doc.toxml(encoding="UTF-8")
+                xml = self.doc.toxml(encoding='UTF-8')
             f.write(xml)
 
     def _append_image(self, path, i):
@@ -234,17 +234,17 @@ class DeepZoomCollectionDescriptor(object):
         descriptor.open(path)
         files_path = _get_or_create_path(_get_files_path(self.source))
         for level in reversed(xrange(self.max_level + 1)):
-            level_path = _get_or_create_path("%s/%s"%(files_path, level))
+            level_path = _get_or_create_path('%s/%s'%(files_path, level))
             level_size = 2**level
             images_per_tile = int(math.floor(self.tile_size / level_size))
             column, row = self.get_tile_position(i, level, self.tile_size)
-            tile_path = "%s/%s_%s.%s"%(level_path, column, row, self.tile_format)
+            tile_path = '%s/%s_%s.%s'%(level_path, column, row, self.tile_format)
             if not os.path.exists(tile_path):
-                tile_image = PIL.Image.new("RGB", (self.tile_size, self.tile_size))
+                tile_image = PIL.Image.new('RGB', (self.tile_size, self.tile_size))
                 q = int(self.image_quality * 100)
-                tile_image.save(tile_path, "JPEG", quality=q)
+                tile_image.save(tile_path, 'JPEG', quality=q)
             tile_image = PIL.Image.open(tile_path)
-            source_path = "%s/%s/%s_%s.%s"%(_get_files_path(path), level, 0, 0,
+            source_path = '%s/%s/%s_%s.%s'%(_get_files_path(path), level, 0, 0,
                                             descriptor.tile_format)
             if os.path.exists(source_path):
                 # Local
@@ -305,30 +305,30 @@ class DeepZoomCollectionItem(object):
 
     @classmethod
     def from_xml(cls, xml):
-        id = int(xml.getAttribute("Id"))
-        source = xml.getAttribute("Source")
-        size = xml.getElementsByTagName("Size")[0]
-        width = int(size.getAttribute("Width"))
-        height = int(size.getAttribute("Height"))
+        id = int(xml.getAttribute('Id'))
+        source = xml.getAttribute('Source')
+        size = xml.getElementsByTagName('Size')[0]
+        width = int(size.getAttribute('Width'))
+        height = int(size.getAttribute('Height'))
         return DeepZoomCollectionItem(source, width, height, id)
 
 
 class ImageCreator(object):
     """Creates Deep Zoom images."""
-    def __init__(self, tile_size=254, tile_overlap=1, tile_format="jpg",
+    def __init__(self, tile_size=254, tile_overlap=1, tile_format='jpg',
                  image_quality=0.8, resize_filter=None, copy_metadata=False):
         self.tile_size = int(tile_size)
         self.tile_format = tile_format
         self.tile_overlap = _clamp(int(tile_overlap), 0, 10)
         self.image_quality = _clamp(image_quality, 0, 1.0)
         if not tile_format in IMAGE_FORMAT_MAP:
-            self.tile_format = "jpg"
+            self.tile_format = 'jpg'
         self.resize_filter = resize_filter
         self.copy_metadata = copy_metadata
 
     def get_image(self, level):
         """Returns the bitmap image at the given level."""
-        assert 0 <= level and level < self.descriptor.num_levels, "Invalid pyramid level"
+        assert 0 <= level and level < self.descriptor.num_levels, 'Invalid pyramid level'
         width, height = self.descriptor.get_dimensions(level)
         # don't transform to what we already have
         if self.descriptor.width == width and self.descriptor.height == height:
@@ -363,11 +363,11 @@ class ImageCreator(object):
                 tile = level_image.crop(bounds)
                 format = self.descriptor.tile_format
                 tile_path = os.path.join(level_dir,
-                                         "%s_%s.%s"%(column, row, format))
-                tile_file = open(tile_path, "wb")
-                if self.descriptor.tile_format == "jpg":
+                                         '%s_%s.%s'%(column, row, format))
+                tile_file = open(tile_path, 'wb')
+                if self.descriptor.tile_format == 'jpg':
                     jpeg_quality = int(self.image_quality * 100)
-                    tile.save(tile_file, "JPEG", quality=jpeg_quality)
+                    tile.save(tile_file, 'JPEG', quality=jpeg_quality)
                 else:
                     tile.save(tile_file)
         # Create descriptor
@@ -377,7 +377,7 @@ class ImageCreator(object):
 class CollectionCreator(object):
     """Creates Deep Zoom collections."""
     def __init__(self, image_quality=0.8, tile_size=256,
-                 max_level=7, tile_format="jpg", copy_metadata=False):
+                 max_level=7, tile_format='jpg', copy_metadata=False):
         self.image_quality = image_quality
         self.tile_size = tile_size
         self.max_level = max_level
@@ -387,11 +387,11 @@ class CollectionCreator(object):
 
     def create(self, images, destination):
         """Creates a Deep Zoom collection from a list of images."""
-        collection = DeepZoomCollectionDescriptor(destination,
-                                                  image_quality=self.image_quality,
-                                                  max_level=self.max_level,
-                                                  tile_size=self.tile_size,
-                                                  tile_format=self.tile_format)
+        collection = DeepZoomCollection(destination,
+                                        image_quality=self.image_quality,
+                                        max_level=self.max_level,
+                                        tile_size=self.tile_size,
+                                        tile_format=self.tile_format)
         for image in images:
             collection.append(image)
         collection.save()
@@ -403,11 +403,11 @@ def retry(attempts, backoff=2):
     the number of attempts has been reached."""
 
     if backoff <= 1:
-        raise ValueError("backoff must be greater than 1")
+        raise ValueError('backoff must be greater than 1')
 
     attempts = int(math.floor(attempts))
     if attempts < 0:
-        raise ValueError("attempts must be 0 or greater")
+        raise ValueError('attempts must be 0 or greater')
 
     def deco_retry(f):
         def f_retry(*args, **kwargs):
@@ -435,7 +435,7 @@ def _clamp(val, min, max):
     return val
 
 def _get_files_path(path):
-    return os.path.splitext(path)[0] + "_files"
+    return os.path.splitext(path)[0] + '_files'
 
 @retry(6)
 def safe_open(path):
@@ -444,23 +444,23 @@ def safe_open(path):
 ################################################################################
 
 def main():
-    parser = optparse.OptionParser(usage="Usage: %prog [options] filename")
+    parser = optparse.OptionParser(usage='Usage: %prog [options] filename')
 
-    parser.add_option("-d", "--destination", dest="destination",
-                      help="Set the destination of the output.")
+    parser.add_option('-d', '--destination', dest='destination',
+                      help='Set the destination of the output.')
 
-    parser.add_option("-s", "--tile_size", dest="tile_size", type="int",
-                      default=254, help="Size of the tiles. Default: 254")
-    parser.add_option("-f", "--tile_format", dest="tile_format",
-                      default="jpg", help="Image format of the tiles \
-                                          (jpg or png). Default: jpg")
-    parser.add_option("-o", "--tile_overlap", dest="tile_overlap", type="int",
-                      default=1, help="Overlap of the tiles in pixels (0-10). Default: 1")
-    parser.add_option("-q", "--image_quality", dest="image_quality", type="float",
-                      default=0.8, help="Quality of the image output (0-1). Default: 0.8")
-    parser.add_option("-r", "--resize_filter", dest="resize_filter", default="antialias",
-                      help="Type of filter for resizing (bicubic, nearest, \
-                            bilinear, antialias (best). Default: antialias")
+    parser.add_option('-s', '--tile_size', dest='tile_size', type='int',
+                      default=254, help='Size of the tiles. Default: 254')
+    parser.add_option('-f', '--tile_format', dest='tile_format',
+                      default='jpg', help='Image format of the tiles \
+                                          (jpg or png). Default: jpg')
+    parser.add_option('-o', '--tile_overlap', dest='tile_overlap', type='int',
+                      default=1, help='Overlap of the tiles in pixels (0-10). Default: 1')
+    parser.add_option('-q', '--image_quality', dest='image_quality', type='float',
+                      default=0.8, help='Quality of the image output (0-1). Default: 0.8')
+    parser.add_option('-r', '--resize_filter', dest='resize_filter', default='antialias',
+                      help='Type of filter for resizing (bicubic, nearest, \
+                            bilinear, antialias (best). Default: antialias')
 
     (options, args) = parser.parse_args()
 
@@ -472,9 +472,9 @@ def main():
 
     if not options.destination:
         if os.path.exists(source):
-            options.destination = os.path.splitext(source)[0] + ".dzi"
+            options.destination = os.path.splitext(source)[0] + '.dzi'
         else:
-            options.destination = os.path.splitext(os.path.basename(source))[0] + ".dzi"
+            options.destination = os.path.splitext(os.path.basename(source))[0] + '.dzi'
     if options.resize_filter and options.resize_filter in RESIZE_FILTER_MAP:
         options.resize_filter = RESIZE_FILTER_MAP[options.resize_filter]
 
@@ -484,5 +484,5 @@ def main():
                            resize_filter=options.resize_filter)
     creator.create(source, options.destination)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
