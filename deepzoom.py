@@ -56,7 +56,10 @@ from collections import deque
 
 NS_DEEPZOOM = 'http://schemas.microsoft.com/deepzoom/2008'
 
-RESIZE_FILTER_MAP = {
+DEFAULT_RESIZE_FILTER = PIL.Image.ANTIALIAS
+DEFAULT_IMAGE_FORMAT = 'jpg'
+
+RESIZE_FILTERS = {
     'cubic': PIL.Image.CUBIC,
     'bilinear': PIL.Image.BILINEAR,
     'bicubic': PIL.Image.BICUBIC,
@@ -64,7 +67,7 @@ RESIZE_FILTER_MAP = {
     'antialias': PIL.Image.ANTIALIAS,
     }
 
-IMAGE_FORMAT_MAP = {
+IMAGE_FORMATS = {
     'jpg': 'jpg',
     'png': 'png',
     }
@@ -321,8 +324,8 @@ class ImageCreator(object):
         self.tile_format = tile_format
         self.tile_overlap = _clamp(int(tile_overlap), 0, 10)
         self.image_quality = _clamp(image_quality, 0, 1.0)
-        if not tile_format in IMAGE_FORMAT_MAP:
-            self.tile_format = 'jpg'
+        if not tile_format in IMAGE_FORMATS:
+            self.tile_format = DEFAULT_IMAGE_FORMAT
         self.resize_filter = resize_filter
         self.copy_metadata = copy_metadata
 
@@ -333,9 +336,9 @@ class ImageCreator(object):
         # don't transform to what we already have
         if self.descriptor.width == width and self.descriptor.height == height:
             return self.image
-        if (self.resize_filter is None) or (self.resize_filter not in RESIZE_FILTER_MAP):
+        if (self.resize_filter is None) or (self.resize_filter not in RESIZE_FILTERS):
             return self.image.resize((width, height), PIL.Image.ANTIALIAS)
-        return self.image.resize((width, height), RESIZE_FILTER_MAP[self.resize_filter])
+        return self.image.resize((width, height), RESIZE_FILTERS[self.resize_filter])
 
     def tiles(self, level):
         """Iterator for all tiles in the given level. Returns (column, row) of a tile."""
@@ -452,15 +455,13 @@ def main():
     parser.add_option('-s', '--tile_size', dest='tile_size', type='int',
                       default=254, help='Size of the tiles. Default: 254')
     parser.add_option('-f', '--tile_format', dest='tile_format',
-                      default='jpg', help='Image format of the tiles \
-                                          (jpg or png). Default: jpg')
+                      default=DEFAULT_IMAGE_FORMAT, help='Image format of the tiles (jpg or png). Default: jpg')
     parser.add_option('-o', '--tile_overlap', dest='tile_overlap', type='int',
                       default=1, help='Overlap of the tiles in pixels (0-10). Default: 1')
     parser.add_option('-q', '--image_quality', dest='image_quality', type='float',
                       default=0.8, help='Quality of the image output (0-1). Default: 0.8')
-    parser.add_option('-r', '--resize_filter', dest='resize_filter', default='antialias',
-                      help='Type of filter for resizing (bicubic, nearest, \
-                            bilinear, antialias (best). Default: antialias')
+    parser.add_option('-r', '--resize_filter', dest='resize_filter', default=DEFAULT_RESIZE_FILTER,
+                      help='Type of filter for resizing (bicubic, nearest, bilinear, antialias (best). Default: antialias')
 
     (options, args) = parser.parse_args()
 
@@ -475,8 +476,8 @@ def main():
             options.destination = os.path.splitext(source)[0] + '.dzi'
         else:
             options.destination = os.path.splitext(os.path.basename(source))[0] + '.dzi'
-    if options.resize_filter and options.resize_filter in RESIZE_FILTER_MAP:
-        options.resize_filter = RESIZE_FILTER_MAP[options.resize_filter]
+    if options.resize_filter and options.resize_filter in RESIZE_FILTERS:
+        options.resize_filter = RESIZE_FILTERS[options.resize_filter]
 
     creator = ImageCreator(tile_size=options.tile_size,
                            tile_format=options.tile_format,
