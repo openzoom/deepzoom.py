@@ -451,7 +451,6 @@ def main():
 
     parser.add_option('-d', '--destination', dest='destination',
                       help='Set the destination of the output.')
-
     parser.add_option('-s', '--tile_size', dest='tile_size', type='int',
                       default=254, help='Size of the tiles. Default: 254')
     parser.add_option('-f', '--tile_format', dest='tile_format',
