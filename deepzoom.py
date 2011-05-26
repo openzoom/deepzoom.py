@@ -38,7 +38,10 @@
 import math
 import optparse
 import os
-import PIL.Image
+try:
+    from PIL import Image
+except:
+    import Image
 
 try:
     import cStringIO
@@ -56,15 +59,15 @@ from collections import deque
 
 NS_DEEPZOOM = 'http://schemas.microsoft.com/deepzoom/2008'
 
-DEFAULT_RESIZE_FILTER = PIL.Image.ANTIALIAS
+DEFAULT_RESIZE_FILTER = Image.ANTIALIAS
 DEFAULT_IMAGE_FORMAT = 'jpg'
 
 RESIZE_FILTERS = {
-    'cubic': PIL.Image.CUBIC,
-    'bilinear': PIL.Image.BILINEAR,
-    'bicubic': PIL.Image.BICUBIC,
-    'nearest': PIL.Image.NEAREST,
-    'antialias': PIL.Image.ANTIALIAS,
+    'cubic': Image.CUBIC,
+    'bilinear': Image.BILINEAR,
+    'bicubic': Image.BICUBIC,
+    'nearest': Image.NEAREST,
+    'antialias': Image.ANTIALIAS,
     }
 
 IMAGE_FORMATS = {
@@ -243,24 +246,24 @@ class DeepZoomCollection(object):
             column, row = self.get_tile_position(i, level, self.tile_size)
             tile_path = '%s/%s_%s.%s'%(level_path, column, row, self.tile_format)
             if not os.path.exists(tile_path):
-                tile_image = PIL.Image.new('RGB', (self.tile_size, self.tile_size))
+                tile_image = Image.new('RGB', (self.tile_size, self.tile_size))
                 q = int(self.image_quality * 100)
                 tile_image.save(tile_path, 'JPEG', quality=q)
-            tile_image = PIL.Image.open(tile_path)
+            tile_image = Image.open(tile_path)
             source_path = '%s/%s/%s_%s.%s'%(_get_files_path(path), level, 0, 0,
                                             descriptor.tile_format)
             if os.path.exists(source_path):
                 # Local
-                source_image = PIL.Image.open(safe_open(source_path))
+                source_image = Image.open(safe_open(source_path))
             else:
                 # Remote
                 if level == self.max_level:
-                    source_image = PIL.Image.open(safe_open(source_path))
+                    source_image = Image.open(safe_open(source_path))
                     w, h = source_image.size
                 else:
                     w = int(math.ceil(w * 0.5))
                     h = int(math.ceil(h * 0.5))
-                    source_image.thumbnail((w, h), PIL.Image.ANTIALIAS)
+                    source_image.thumbnail((w, h), Image.ANTIALIAS)
             column, row = self.get_position(i)
             x = (column % images_per_tile) * level_size
             y = (row % images_per_tile) * level_size
@@ -337,7 +340,7 @@ class ImageCreator(object):
         if self.descriptor.width == width and self.descriptor.height == height:
             return self.image
         if (self.resize_filter is None) or (self.resize_filter not in RESIZE_FILTERS):
-            return self.image.resize((width, height), PIL.Image.ANTIALIAS)
+            return self.image.resize((width, height), Image.ANTIALIAS)
         return self.image.resize((width, height), RESIZE_FILTERS[self.resize_filter])
 
     def tiles(self, level):
@@ -349,7 +352,7 @@ class ImageCreator(object):
 
     def create(self, source, destination):
         """Creates Deep Zoom image from source file and saves it to destination."""
-        self.image = PIL.Image.open(safe_open(source))
+        self.image = Image.open(safe_open(source))
         width, height = self.image.size
         self.descriptor = DeepZoomImageDescriptor(width=width,
                                                   height=height,
