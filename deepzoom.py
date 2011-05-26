@@ -39,9 +39,9 @@ import math
 import optparse
 import os
 try:
-    from PIL import Image
+    from PIL import Image, ImageEnhance
 except:
-    import Image
+    import Image, ImageEnhance
 
 try:
     import cStringIO
@@ -55,7 +55,7 @@ import urllib
 import xml.dom.minidom
 
 from collections import deque
-
+from random import randrange
 
 NS_DEEPZOOM = 'http://schemas.microsoft.com/deepzoom/2008'
 
@@ -322,7 +322,8 @@ class DeepZoomCollectionItem(object):
 class ImageCreator(object):
     """Creates Deep Zoom images."""
     def __init__(self, tile_size=254, tile_overlap=1, tile_format='jpg',
-                 image_quality=0.8, resize_filter=None, copy_metadata=False):
+                 image_quality=0.8, resize_filter=None, copy_metadata=False,
+                 watermark=None):
         self.tile_size = int(tile_size)
         self.tile_format = tile_format
         self.tile_overlap = _clamp(int(tile_overlap), 0, 10)
@@ -331,6 +332,11 @@ class ImageCreator(object):
             self.tile_format = DEFAULT_IMAGE_FORMAT
         self.resize_filter = resize_filter
         self.copy_metadata = copy_metadata
+        if os.path.exists( watermark ):
+            # Reduce the opacity / transparency of the watermark to: 0.1
+            self.watermark = reduce_opacity( Image.open( watermark ), 0.1 )
+        else:
+            self.watermark = None
 
     def get_image(self, level):
         """Returns the bitmap image at the given level."""
@@ -367,6 +373,14 @@ class ImageCreator(object):
             for (column, row) in self.tiles(level):
                 bounds = self.descriptor.get_tile_bounds(level, column, row)
                 tile = level_image.crop(bounds)
+                if (self.watermark and tile.size[0]-self.watermark.size[0] > 0 \
+                                  and tile.size[1]-self.watermark.size[1] > 0):
+                    watermark = Image.new('RGBA', tile.size, (0,0,0,0))
+                    watermark.paste( self.watermark, (
+                        randrange(0, tile.size[0]-self.watermark.size[0]),
+                        randrange(0, tile.size[1]-self.watermark.size[1]) ))
+                    tile = Image.composite( watermark, tile, watermark )
+
                 format = self.descriptor.tile_format
                 tile_path = os.path.join(level_dir,
                                          '%s_%s.%s'%(column, row, format))
@@ -447,6 +461,18 @@ def _get_files_path(path):
 def safe_open(path):
     return StringIO.StringIO(urllib.urlopen(path).read())
 
+def reduce_opacity(im, opacity):
+    """Returns an image with reduced opacity."""
+    assert opacity >= 0 and opacity <= 1
+    if im.mode != 'RGBA':
+        im = im.convert('RGBA')
+    else:
+        im = im.copy()
+    alpha = im.split()[3]
+    alpha = ImageEnhance.Brightness(alpha).enhance(opacity)
+    im.putalpha(alpha)
+    return im
+
 ################################################################################
 
 def main():
@@ -464,6 +490,8 @@ def main():
                       default=0.8, help='Quality of the image output (0-1). Default: 0.8')
     parser.add_option('-r', '--resize_filter', dest='resize_filter', default=DEFAULT_RESIZE_FILTER,
                       help='Type of filter for resizing (bicubic, nearest, bilinear, antialias (best). Default: antialias')
+    parser.add_option('-w', '--watermark', dest='watermark',
+                      help='Set the filename of a PNG image for watermarking. Check WATERMARK.txt for details.')
 
     (options, args) = parser.parse_args()
 
@@ -484,7 +512,8 @@ def main():
     creator = ImageCreator(tile_size=options.tile_size,
                            tile_format=options.tile_format,
                            image_quality=options.image_quality,
-                           resize_filter=options.resize_filter)
+                           resize_filter=options.resize_filter,
+                           watermark=options.watermark)
     creator.create(source, options.destination)
 
 if __name__ == '__main__':

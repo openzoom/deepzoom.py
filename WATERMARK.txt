@@ -1,0 +1,13 @@
+The watermarking functionality expects a PNG file with image which is then
+burned into every tile at a random position.
+
+The easiest way how to prepare a nice looking textual watermark is to use
+the Google Charts API and save the generated image file on your computer.
+
+Just type into browser:
+http://chart.apis.google.com/chart?chst=d_text_outline&chld=FFFFFF|11|h|000000|b|%C2%A9%20
+(shortened: http://goo.gl/Aq6Xt)
+
+and add your own text at the end (behind the last "|").
+
+Save it as watermark.png, and then use with "deepzoom.py -w watermark.png"
