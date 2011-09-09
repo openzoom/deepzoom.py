@@ -3,9 +3,9 @@
 #
 #  Deep Zoom Tools
 #
+#  Copyright (c) 2008-2011, OpenZoom <http://openzoom.org>
+#  Copyright (c) 2008-2011, Daniel Gasienica <daniel@gasienica.ch>
 #  Copyright (c) 2010, Boris Bluntschli <boris@bluntschli.ch>
-#  Copyright (c) 2008-2010, OpenZoom <http://openzoom.org>
-#  Copyright (c) 2008-2010, Daniel Gasienica <daniel@gasienica.ch>
 #  Copyright (c) 2008, Kapil Thangavelu <kapil.foss@gmail.com>
 #  All rights reserved.
 #
