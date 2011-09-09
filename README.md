@@ -1,72 +1,84 @@
---------------------------------------------------------------------------------
+# deepzoom.py: Python Deep Zoom Tools
 
-  Python Deep Zoom Tools
+## Installation
 
---------------------------------------------------------------------------------
+    git clone https://github.com/openzoom/deepzoom.py.git
+    cd deepzoom.py
+    python setup.py install
+    
+## Example
 
+    cd deepzoom.py/examples/helloworld/
+    ./helloworld.py
+    ls -l helloworld_files/
 
-  Installation
-  ------------
+### Output:
 
-  python setup.py install
+    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 0
+    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 1
+    drwxr-xr-x  22 dani  staff  748 Sep  9 18:54 10
+    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 2
+    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 3
+    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 4
+    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 5
+    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 6
+    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 7
+    drwxr-xr-x   4 dani  staff  136 Sep  9 18:54 8
+    drwxr-xr-x   8 dani  staff  272 Sep  9 18:54 9
 
+## Dependencies
+
+- [Python Imaging Library (PIL)](http://www.pythonware.com/products/pil)
+
+### Installation
+
+  1. [Get `pip`](http://www.pip-installer.org/en/latest/installing.html)
+  2. Run `sudo pip install pil`
+  3. Run `python`
+  4. Enter `import PIL` and make sure there’s no error
+  5. Congratulations, you’re ready to use `deepzoom.py`
   
-  Dependencies
-  ------------
-  
-  * Python Imaging Library (PIL)
-    <http://www.pythonware.com/products/pil>
+### Resources
+
+  - [Google App Engine: Installing PIL](http://code.google.com/appengine/docs/python/images/installingPIL.html)
+  - [Installing PIL on Mac OS X Lion](http://bencrowder.net/blog/2011/08/installing-pil-on-lion/)
+  - [Building PIL on OS X: Snow Leopard](http://bradmontgomery.blogspot.com/2010/02/building-pil-on-os-x-snow-leopard.html)
 
 
---------------------------------------------------------------------------------
+## Acknowledgements
+  
+Initially developed by [Kapil Thangavelu](mailto:kapil.foss@gmail.com).
+Powered by [OpenZoom](http://openzoom.org).
 
-  Developed by
-  
-  Daniel Gasienica
-  <daniel@gasienica.ch>
-  <http://gasi.ch>
-  
-  and
-  
-  Kapil Thangavelu
-  <kapil.foss@gmail.com>
-  
-  ----------------------------------------------------------------------------
+## License
 
-  Powered by OpenZoom <http://openzoom.org>
+Licensed under the [New BSD Licence](http://www.opensource.org/licenses/bsd-license.php).
+  
+## Changelog
+  
+### Version 0.9.4 – September 9, 2011
+  
+  - Added sample image and made example script executable.
+  - Added instructions for installing PIL.
+  
+### Version 0.9 – November 14, 2010
+  
+  - Fixed issue #1: Bug in the tile saving in ImageCreator.create.
+  - Set `CollectionCreator` `max_level` default to `7`.
+  - Set `CollectionCreator` `tile_size` default to `256`.
 
---------------------------------------------------------------------------------
+### Version 0.1.2 – May 24, 2009
 
-  License: New BSD Licence
-  <http://www.opensource.org/licenses/bsd-license.php>
-  
---------------------------------------------------------------------------------
-
-  Changelog
-  ---------
-  
-  0.9 (2010-11-14)
-  ----------------
-  
-  Fixed issue #1: Bug in the tile saving in ImageCreator.create.
-  Set CollectionCreator max_level default to 7.
-  Set CollectionCreator tile_size default to 256.
-  
-  
-  0.1.2 (2009-05-24)
-  ------------------
-
-  * Renamed DZIDescriptor to DeepZoomImageDescriptor for
+  - Renamed `DZIDescriptor` to `DeepZoomImageDescriptor` for
     consistency with the OpenZoom SDK descriptor framework.
   
-  0.1.1 (2009-04-08)
-  ------------------
+###  Version 0.1.1 – April 8, 2009
 
-  * Removed unnecessary urllib2 import.
-  * Added description of dependencies. 
+  - Removed unnecessary `urllib2` import.
+  - Added description of dependencies.
   
   
-  0.1.0 (2009-03-23)
-  ------------------
-  First release. Nothing is new, or everything is new,
-  depending on how you think about it. -- Google
+### Version 0.1.0 – March 23, 2009
+
+  - First release. Nothing is new, or everything is new,
+    depending on how you think about it. -- *Google*
