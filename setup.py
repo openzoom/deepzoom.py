@@ -4,7 +4,7 @@
 from distutils.core import setup
 
 setup(name='DeepZoomTools',
-      version='0.9.4',
+      version='1.0.0',
       description='Python tools for generating Deep Zoom images (DZI) and \
 collections (DZC) for the use with Silverlight Deep Zoom, Seadragon Ajax, \
 Seadragon Mobile and OpenZoom.',
