@@ -10,21 +10,6 @@
 
     cd deepzoom.py/examples/helloworld/
     ./helloworld.py
-    ls -l helloworld_files/
-
-### Output:
-
-    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 0
-    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 1
-    drwxr-xr-x  22 dani  staff  748 Sep  9 18:54 10
-    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 2
-    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 3
-    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 4
-    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 5
-    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 6
-    drwxr-xr-x   3 dani  staff  102 Sep  9 18:54 7
-    drwxr-xr-x   4 dani  staff  136 Sep  9 18:54 8
-    drwxr-xr-x   8 dani  staff  272 Sep  9 18:54 9
 
 ## Dependencies
 
