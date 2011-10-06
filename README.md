@@ -41,6 +41,14 @@ Licensed under the [New BSD Licence][bsd].
 
 ## Changelog
 
+### Version 1.0.0 – October 6, 2011
+
+  - Added workaround for [IIP][] bug that causes it to serve low-level tiles
+    with wrong dimensions.
+  - Added `DeepZoomCollection.remove` and `DeepZoomImageDescriptor.remove`
+    class methods for removing descriptors and their corresponding tiles
+    folders.
+
 ### Version 0.9.4 – September 9, 2011
 
   - Added sample image and made example script executable.
