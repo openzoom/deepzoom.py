@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #
 #  Deep Zoom Tools
@@ -39,6 +40,7 @@ import math
 import optparse
 import os
 import PIL.Image
+import shutil
 
 try:
     import cStringIO
@@ -111,6 +113,11 @@ class DeepZoomImageDescriptor(object):
         descriptor = doc.toxml(encoding='UTF-8')
         file.write(descriptor)
         file.close()
+
+    @classmethod
+    def remove(self, filename):
+        """Remove descriptor file (DZI) and tiles folder."""
+        _remove(filename)
 
     @property
     def num_levels(self):
@@ -199,6 +206,12 @@ class DeepZoomCollection(object):
                                         items=items)
         return collection
 
+
+    @classmethod
+    def remove(self, filename):
+        """Remove collection file (DZC) and tiles folder."""
+        _remove(filename)
+
     def append(self, source):
         descriptor = DeepZoomImageDescriptor()
         descriptor.open(source)
@@ -249,14 +262,24 @@ class DeepZoomCollection(object):
             tile_image = PIL.Image.open(tile_path)
             source_path = '%s/%s/%s_%s.%s'%(_get_files_path(path), level, 0, 0,
                                             descriptor.tile_format)
+            # Local
             if os.path.exists(source_path):
-                # Local
                 source_image = PIL.Image.open(safe_open(source_path))
+            # Remote
             else:
-                # Remote
                 if level == self.max_level:
                     source_image = PIL.Image.open(safe_open(source_path))
+                    # Expected width & height of the tile
+                    e_w, e_h = descriptor.get_dimensions(level)
+                    # Actual width & height of the tile
                     w, h = source_image.size
+                    # Correct tile because of IIP bug where low-level tiles
+                    # have wrong dimensions (they are too large)
+                    if w != e_w or h != e_h:
+                        # Resize incorrect tile to correct size
+                        source_image = source_image.resize((e_w, e_h), PIL.Image.ANTIALIAS)
+                        # Store new dimensions
+                        w, h = e_w, e_h
                 else:
                     w = int(math.ceil(w * 0.5))
                     h = int(math.ceil(h * 0.5))
@@ -439,6 +462,11 @@ def _clamp(val, min, max):
 
 def _get_files_path(path):
     return os.path.splitext(path)[0] + '_files'
+
+def _remove(path):
+    os.remove(path)
+    tiles_path = _get_files_path(path)
+    shutil.rmtree(tiles_path)
 
 @retry(6)
 def safe_open(path):
