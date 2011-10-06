@@ -40,6 +40,7 @@ import math
 import optparse
 import os
 import PIL.Image
+import shutil
 
 try:
     import cStringIO
@@ -112,6 +113,11 @@ class DeepZoomImageDescriptor(object):
         descriptor = doc.toxml(encoding='UTF-8')
         file.write(descriptor)
         file.close()
+
+    @classmethod
+    def remove(self, filename):
+        """Remove descriptor file (DZI) and tiles folder."""
+        _remove(filename)
 
     @property
     def num_levels(self):
@@ -199,6 +205,12 @@ class DeepZoomCollection(object):
                                         tile_format=tile_format,
                                         items=items)
         return collection
+
+
+    @classmethod
+    def remove(self, filename):
+        """Remove collection file (DZC) and tiles folder."""
+        _remove(filename)
 
     def append(self, source):
         descriptor = DeepZoomImageDescriptor()
@@ -440,6 +452,11 @@ def _clamp(val, min, max):
 
 def _get_files_path(path):
     return os.path.splitext(path)[0] + '_files'
+
+def _remove(path):
+    os.remove(path)
+    tiles_path = _get_files_path(path)
+    shutil.rmtree(tiles_path)
 
 @retry(6)
 def safe_open(path):
