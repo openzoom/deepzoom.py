@@ -51,6 +51,7 @@ except ImportError:
 import sys
 import time
 import urllib
+import warnings
 import xml.dom.minidom
 
 from collections import deque
@@ -264,11 +265,19 @@ class DeepZoomCollection(object):
                                             descriptor.tile_format)
             # Local
             if os.path.exists(source_path):
-                source_image = PIL.Image.open(safe_open(source_path))
+                try:
+                    source_image = PIL.Image.open(safe_open(source_path))
+                except IOError:
+                    warnings.warn('Skipped invalid level: %s' % source_path)
+                    continue
             # Remote
             else:
                 if level == self.max_level:
-                    source_image = PIL.Image.open(safe_open(source_path))
+                    try:
+                        source_image = PIL.Image.open(safe_open(source_path))
+                    except IOError:
+                        warnings.warn('Skipped invalid image: %s' % source_path)
+                        return
                     # Expected width & height of the tile
                     e_w, e_h = descriptor.get_dimensions(level)
                     # Actual width & height of the tile
