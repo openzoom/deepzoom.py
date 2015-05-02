@@ -50,7 +50,6 @@ import xml.dom.minidom
 from collections import deque
 from six import BytesIO
 from six.moves import range
-from six.moves.urllib.request import urlopen
 
 
 NS_DEEPZOOM = 'http://schemas.microsoft.com/deepzoom/2008'
@@ -476,7 +475,7 @@ def _remove(path):
 
 @retry(6)
 def safe_open(path):
-    return BytesIO(urlopen(path).read())
+    return BytesIO(open(path, 'rb').read())
 
 ################################################################################
 
