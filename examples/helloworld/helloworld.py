@@ -4,7 +4,7 @@
 import deepzoom
 
 # Specify your source image
-SOURCE = "file:helloworld.jpg"
+SOURCE = "helloworld.jpg"
 
 # Create Deep Zoom Image creator with weird parameters
 creator = deepzoom.ImageCreator(tile_size=128, tile_overlap=2, tile_format="png",
