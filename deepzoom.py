@@ -42,11 +42,14 @@ import os
 import PIL.Image
 import shutil
 
-try:
-    import cStringIO
-    StringIO = cStringIO
-except ImportError:
-    import StringIO
+if sys.version_info > (3,0):
+    from io import StringIO
+else:
+    try:
+        import cStringIO
+        StringIO = cStringIO
+    except ImportError:
+        import StringIO
 
 import sys
 import time
