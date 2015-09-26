@@ -45,6 +45,7 @@ import shutil
 
 if sys.version_info > (3,0):
     from io import StringIO
+    xrange = range
 else:
     try:
         import cStringIO
