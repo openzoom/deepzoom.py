@@ -44,7 +44,7 @@ import PIL.Image
 import shutil
 
 if sys.version_info > (3,0):
-    from io import StringIO
+    import io as StringIO
     xrange = range
 else:
     try:
