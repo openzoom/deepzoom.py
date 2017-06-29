@@ -1,3 +1,5 @@
+# +++ OpenZoom Python Deep Zoom Tools are no longer being maintained nor supported +++
+
 # deepzoom.py: Python Deep Zoom Tools
 
 ## Installation
