@@ -36,23 +36,18 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+import io
 import math
 import optparse
 import os
-import PIL.Image
 import shutil
-
-try:
-    import io
-    StringIO = cStringIO
-except ImportError:
-    import io
-
 import sys
 import time
 import urllib.request, urllib.parse, urllib.error
 import warnings
 import xml.dom.minidom
+
+import PIL.Image
 
 from collections import deque
 
