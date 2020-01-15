@@ -472,7 +472,7 @@ def _remove(path):
     tiles_path = _get_files_path(path)
     shutil.rmtree(tiles_path)
 
-@retry(6)
+@retry(3)
 def safe_open(path):
     return io.StringIO(urllib.request.urlopen(path).read())
 
