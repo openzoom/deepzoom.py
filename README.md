@@ -31,7 +31,6 @@ Licensed under the [New BSD Licence][bsd].
 
 
 [bsd]: http://www.opensource.org/licenses/bsd-license.php
-[iip]: http://iipimage.sourceforge.net/
 [openzoom]: http://openzoom.org
 [pil]: http://www.pythonware.com/products/pil
 [pillow]: https://pillow.readthedocs.io/en/stable/installation.html#basic-installation
