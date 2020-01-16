@@ -13,6 +13,7 @@ collections (DZC) for the use with Silverlight Deep Zoom, Seadragon Ajax, \
 Seadragon Mobile, and OpenZoom.",
     keywords="deepzoom seadragon dzi dzc seadragonajax seadragonmobile silverlightdeepzoom microsoft openzoom",
     packages=find_packages(),
+    license="BSD 3-Clause License",
     install_requires=["Pillow>=6"],
     url="https://github.com/openzoom/deepzoom.py",
     include_package_data=True,
