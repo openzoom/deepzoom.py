@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="DeepZoomTools",
-    version="1.1.0",
+    version="2.0.0a1",
     author="Daniel Gasienica",
     author_email="daniel@gasienica.ch",
     description="Python tools for generating Deep Zoom images (DZI) and \
