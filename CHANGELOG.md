@@ -1,12 +1,16 @@
 # Changelog
 
+## Version 2.0.0a2 – January 16, 2020
+
+- Format code using [Black].
+
 ## Version 2.0.0a1 – January 16, 2020
 
 - Port to Python 3.
 
 ## Version 1.0.0 – October 6, 2011
 
-- Add workaround for [IIP][] bug that causes it to serve low-level tiles with
+- Add workaround for [IIP] bug that causes it to serve low-level tiles with
   wrong dimensions.
 - Add `DeepZoomCollection.remove` and `DeepZoomImageDescriptor.remove` class
   methods for removing descriptors and their corresponding tiles folders.
@@ -36,3 +40,6 @@
 
 - First release. Nothing is new, or everything is new, depending on how you
   think about it. -- _Google_
+
+[black]: https://black.readthedocs.io/en/stable/
+[iip]: http://iipimage.sourceforge.net/
