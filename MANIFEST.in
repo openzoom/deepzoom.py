@@ -1,5 +1,5 @@
-include README.txt
-include LICENSE.txt
-include deepzoom.py
+include LICENSE
+include README.md
+include CHANGELOG.md
 include setup.py
 recursive-include examples *

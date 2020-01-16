@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python setup.py sdist --formats=zip --force-manifest
+python3 setup.py sdist --formats=zip

@@ -3,6 +3,7 @@
 # examples
 *_files/
 *.dzi
+*.dzc
 
 *.py[co]
 
