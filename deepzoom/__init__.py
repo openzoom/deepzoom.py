@@ -1,11 +1,10 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 #
 #  Deep Zoom Tools
 #
+#  Copyright (c) 2008-2019, Daniel Gasienica <daniel@gasienica.ch>
 #  Copyright (c) 2008-2011, OpenZoom <http://openzoom.org>
-#  Copyright (c) 2008-2011, Daniel Gasienica <daniel@gasienica.ch>
 #  Copyright (c) 2010, Boris Bluntschli <boris@bluntschli.ch>
 #  Copyright (c) 2008, Kapil Thangavelu <kapil.foss@gmail.com>
 #  All rights reserved.
@@ -36,23 +35,19 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+import io
 import math
 import optparse
 import os
-import PIL.Image
 import shutil
-
-try:
-    import cStringIO
-    StringIO = cStringIO
-except ImportError:
-    import StringIO
-
+from urllib.parse import urlparse
 import sys
 import time
-import urllib
+import urllib.request
 import warnings
 import xml.dom.minidom
+
+import PIL.Image
 
 from collections import deque
 
@@ -99,7 +94,7 @@ class DeepZoomImageDescriptor(object):
 
     def save(self, destination):
         """Save descriptor file."""
-        file = open(destination, 'w')
+        file = open(destination, 'wb')
         doc = xml.dom.minidom.Document()
         image = doc.createElementNS(NS_DEEPZOOM, 'Image')
         image.setAttribute('xmlns', NS_DEEPZOOM)
@@ -182,6 +177,7 @@ class DeepZoomCollection(object):
         collection.setAttribute('TileSize', str(self.tile_size))
         collection.setAttribute('Format', str(self.tile_format))
         collection.setAttribute('Quality', str(self.image_quality))
+        # TODO: Append items passed in as argument
         items = self.doc.createElementNS(NS_DEEPZOOM, 'Items')
         collection.appendChild(items)
         collection.setAttribute('NextItemId', str(self.next_item_id))
@@ -239,7 +235,7 @@ class DeepZoomCollection(object):
             items.appendChild(i)
             self._append_image(item.source, item.id)
         collection.setAttribute('NextItemId', str(self.next_item_id))
-        with open(self.source, 'w') as f:
+        with open(self.source, 'wb') as f:
             if pretty_print_xml:
                 xml = self.doc.toprettyxml(encoding='UTF-8')
             else:
@@ -250,7 +246,7 @@ class DeepZoomCollection(object):
         descriptor = DeepZoomImageDescriptor()
         descriptor.open(path)
         files_path = _get_or_create_path(_get_files_path(self.source))
-        for level in reversed(xrange(self.max_level + 1)):
+        for level in reversed(range(self.max_level + 1)):
             level_path = _get_or_create_path('%s/%s'%(files_path, level))
             level_size = 2**level
             images_per_tile = int(math.floor(self.tile_size / level_size))
@@ -282,8 +278,8 @@ class DeepZoomCollection(object):
                     e_w, e_h = descriptor.get_dimensions(level)
                     # Actual width & height of the tile
                     w, h = source_image.size
-                    # Correct tile because of IIP bug where low-level tiles
-                    # have wrong dimensions (they are too large)
+                    # Correct tile because of IIP bug where low-level tiles have
+                    # wrong dimensions (they are too large)
                     if w != e_w or h != e_h:
                         # Resize incorrect tile to correct size
                         source_image = source_image.resize((e_w, e_h), PIL.Image.ANTIALIAS)
@@ -303,8 +299,8 @@ class DeepZoomCollection(object):
         """Returns position (column, row) from given Z-order (Morton number.)"""
         column = 0
         row = 0
-        for i in xrange(0, 32, 2):
-            offset = i / 2
+        for i in range(0, 32, 2):
+            offset = i // 2
             # column
             column_offset = i
             column_mask = 1 << column_offset
@@ -320,7 +316,7 @@ class DeepZoomCollection(object):
     def get_z_order(self, column, row):
         """Returns the Z-order (Morton number) from given position."""
         z_order = 0
-        for i in xrange(32):
+        for i in range(32):
             z_order |= (column & 1 << i) << i | (row & 1 << i) << (i + 1)
         return z_order
 
@@ -375,8 +371,8 @@ class ImageCreator(object):
     def tiles(self, level):
         """Iterator for all tiles in the given level. Returns (column, row) of a tile."""
         columns, rows = self.descriptor.get_num_tiles(level)
-        for column in xrange(columns):
-            for row in xrange(rows):
+        for column in range(columns):
+            for row in range(rows):
                 yield (column, row)
 
     def create(self, source, destination):
@@ -390,7 +386,7 @@ class ImageCreator(object):
                                                   tile_format=self.tile_format)
         # Create tiles
         image_files = _get_or_create_path(_get_files_path(destination))
-        for level in xrange(self.descriptor.num_levels):
+        for level in range(self.descriptor.num_levels):
             level_dir = _get_or_create_path(os.path.join(image_files, str(level)))
             level_image = self.get_image(level)
             for (column, row) in self.tiles(level):
@@ -447,7 +443,7 @@ def retry(attempts, backoff=2):
     def deco_retry(f):
         def f_retry(*args, **kwargs):
             last_exception = None
-            for _ in xrange(attempts):
+            for _ in range(attempts):
                 try:
                     return f(*args, **kwargs)
                 except Exception as exception:
@@ -477,9 +473,15 @@ def _remove(path):
     tiles_path = _get_files_path(path)
     shutil.rmtree(tiles_path)
 
-@retry(6)
+@retry(3)
 def safe_open(path):
-    return StringIO.StringIO(urllib.urlopen(path).read())
+    # `urllib` in Python 2 supported both local paths as well as URLs. To
+    # continue this in Python 3, we manually add `file://` prefix if `path` is
+    # not a URL. This change is isolated to this function as we want the output
+    # XML to still have the original input paths instead of absolute paths:
+    has_scheme = bool(urlparse(path).scheme)
+    normalized_path = f"file://{os.path.abspath(path)}" if not has_scheme else path
+    return io.BytesIO(urllib.request.urlopen(normalized_path).read())
 
 ################################################################################
 
