@@ -277,8 +277,8 @@ class DeepZoomCollection(object):
                     e_w, e_h = descriptor.get_dimensions(level)
                     # Actual width & height of the tile
                     w, h = source_image.size
-                    # Correct tile because of IIP bug where low-level tiles
-                    # have wrong dimensions (they are too large)
+                    # Correct tile because of IIP bug where low-level tiles have
+                    # wrong dimensions (they are too large)
                     if w != e_w or h != e_h:
                         # Resize incorrect tile to correct size
                         source_image = source_image.resize((e_w, e_h), PIL.Image.ANTIALIAS)
