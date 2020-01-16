@@ -43,7 +43,7 @@ import os
 import shutil
 import sys
 import time
-import urllib.request, urllib.parse, urllib.error
+import urllib.request
 import warnings
 import xml.dom.minidom
 
