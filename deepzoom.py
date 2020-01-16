@@ -94,7 +94,7 @@ class DeepZoomImageDescriptor(object):
 
     def save(self, destination):
         """Save descriptor file."""
-        file = open(destination, 'w')
+        file = open(destination, 'wb')
         doc = xml.dom.minidom.Document()
         image = doc.createElementNS(NS_DEEPZOOM, 'Image')
         image.setAttribute('xmlns', NS_DEEPZOOM)
@@ -234,7 +234,7 @@ class DeepZoomCollection(object):
             items.appendChild(i)
             self._append_image(item.source, item.id)
         collection.setAttribute('NextItemId', str(self.next_item_id))
-        with open(self.source, 'w') as f:
+        with open(self.source, 'wb') as f:
             if pretty_print_xml:
                 xml = self.doc.toprettyxml(encoding='UTF-8')
             else:
@@ -474,7 +474,7 @@ def _remove(path):
 
 @retry(3)
 def safe_open(path):
-    return io.StringIO(urllib.request.urlopen(path).read())
+    return io.BytesIO(urllib.request.urlopen(path).read())
 
 ################################################################################
 
