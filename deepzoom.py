@@ -299,7 +299,7 @@ class DeepZoomCollection(object):
         column = 0
         row = 0
         for i in range(0, 32, 2):
-            offset = i / 2
+            offset = i // 2
             # column
             column_offset = i
             column_mask = 1 << column_offset
