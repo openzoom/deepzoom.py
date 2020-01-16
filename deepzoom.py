@@ -177,6 +177,7 @@ class DeepZoomCollection(object):
         collection.setAttribute('TileSize', str(self.tile_size))
         collection.setAttribute('Format', str(self.tile_format))
         collection.setAttribute('Quality', str(self.image_quality))
+        # TODO: Append items passed in as argument
         items = self.doc.createElementNS(NS_DEEPZOOM, 'Items')
         collection.appendChild(items)
         collection.setAttribute('NextItemId', str(self.next_item_id))
