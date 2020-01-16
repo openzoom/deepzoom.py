@@ -11,7 +11,7 @@ python setup.py install
 ## Example
 
 ```bash
-cd deepzoom.py/examples/helloworld/
+cd examples/helloworld/
 
 # Single image (DZI)
 ./helloworld-dzi.py

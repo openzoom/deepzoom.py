@@ -5,7 +5,7 @@ import os
 import deepzoom
 
 # Specify your source image
-SOURCE = f"file://{os.path.abspath('helloworld.jpg')}"
+SOURCE = "helloworld.jpg"
 
 # Create Deep Zoom Image creator with weird parameters
 creator = deepzoom.ImageCreator(
@@ -17,4 +17,4 @@ creator = deepzoom.ImageCreator(
 )
 
 # Create Deep Zoom image pyramid from source
-creator.create(SOURCE, "helloworld.dzi")
+creator.create(SOURCE, "output/helloworld.dzi")
