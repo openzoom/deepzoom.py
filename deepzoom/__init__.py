@@ -410,7 +410,10 @@ class ImageCreator(object):
 
     def create(self, source, destination):
         """Creates Deep Zoom image from source file and saves it to destination."""
-        self.image = PIL.Image.open(safe_open(source))
+        if isinstance(source, PIL.Image.Image):
+            self.image = source
+        else:
+            self.image = PIL.Image.open(safe_open(source))
         width, height = self.image.size
         self.descriptor = DeepZoomImageDescriptor(
             width=width,
