@@ -267,9 +267,13 @@ class DeepZoomCollection(object):
             column, row = self.get_tile_position(i, level, self.tile_size)
             tile_path = "%s/%s_%s.%s" % (level_path, column, row, self.tile_format)
             if not os.path.exists(tile_path):
-                tile_image = PIL.Image.new("RGB", (self.tile_size, self.tile_size))
-                q = int(self.image_quality * 100)
-                tile_image.save(tile_path, "JPEG", quality=q)
+                if self.tile_format == "jpg":
+                    tile_image = PIL.Image.new("RGB", (self.tile_size, self.tile_size))
+                    jpeg_quality = int(self.image_quality * 100)
+                    tile_image.save(tile_path, "JPEG", quality=jpeg_quality)
+                else:
+                    tile_image = PIL.Image.new("RGBA", (self.tile_size, self.tile_size), (0, 0, 0, 0))
+                    tile_image.save(tile_path)
             tile_image = PIL.Image.open(tile_path)
             source_path = "%s/%s/%s_%s.%s" % (
                 _get_files_path(path),
