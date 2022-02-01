@@ -272,8 +272,11 @@ class DeepZoomCollection(object):
                 tile_image = PIL.Image.new(
                     "RGB", (self.tile_size, self.tile_size), self.tile_background_color
                 )
-                q = int(self.image_quality * 100)
-                tile_image.save(tile_path, "JPEG", quality=q)
+                if self.tile_format == "jpg":
+                    jpeg_quality = int(self.image_quality * 100)
+                    tile_image.save(tile_path, "JPEG", quality=jpeg_quality)
+                else:
+                    tile_image.save(tile_path)
             tile_image = PIL.Image.open(tile_path)
             source_path = "%s/%s/%s_%s.%s" % (
                 _get_files_path(path),
