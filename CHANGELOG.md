@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## Version 2.0.0 – February 1, 2022
 
 - Add `DeepZoomCollection` and `CollectionCreator` `tile_background_color`
   parameter for setting background color of collection tiles. This can be useful
