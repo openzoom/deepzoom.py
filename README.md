@@ -8,6 +8,14 @@ cd deepzoom.py
 python setup.py install
 ```
 
+## Development
+
+Install for local development:
+
+```
+python3 -m pip install -e .
+```
+
 ## Example
 
 ```bash
@@ -28,7 +36,6 @@ Powered by [OpenZoom][].
 ## License
 
 Licensed under the [New BSD Licence][bsd].
-
 
 [bsd]: http://www.opensource.org/licenses/bsd-license.php
 [openzoom]: http://openzoom.org

@@ -170,6 +170,7 @@ class DeepZoomCollection(object):
         max_level=7,
         tile_size=256,
         tile_format="jpg",
+        tile_background_color="#000000",
         items=[],
     ):
         self.source = filename
@@ -177,6 +178,7 @@ class DeepZoomCollection(object):
         self.tile_size = tile_size
         self.max_level = max_level
         self.tile_format = tile_format
+        self.tile_background_color = tile_background_color
         self.items = deque(items)
         self.next_item_id = len(self.items)
         # XML
@@ -267,9 +269,14 @@ class DeepZoomCollection(object):
             column, row = self.get_tile_position(i, level, self.tile_size)
             tile_path = "%s/%s_%s.%s" % (level_path, column, row, self.tile_format)
             if not os.path.exists(tile_path):
-                tile_image = PIL.Image.new("RGB", (self.tile_size, self.tile_size))
-                q = int(self.image_quality * 100)
-                tile_image.save(tile_path, "JPEG", quality=q)
+                tile_image = PIL.Image.new(
+                    "RGB", (self.tile_size, self.tile_size), self.tile_background_color
+                )
+                if self.tile_format == "jpg":
+                    jpeg_quality = int(self.image_quality * 100)
+                    tile_image.save(tile_path, "JPEG", quality=jpeg_quality)
+                else:
+                    tile_image.save(tile_path)
             tile_image = PIL.Image.open(tile_path)
             source_path = "%s/%s/%s_%s.%s" % (
                 _get_files_path(path),
@@ -449,11 +456,13 @@ class CollectionCreator(object):
         max_level=7,
         tile_format="jpg",
         copy_metadata=False,
+        tile_background_color="#000000",
     ):
         self.image_quality = image_quality
         self.tile_size = tile_size
         self.max_level = max_level
         self.tile_format = tile_format
+        self.tile_background_color = tile_background_color
         # TODO
         self.copy_metadata = copy_metadata
 
@@ -465,6 +474,7 @@ class CollectionCreator(object):
             max_level=self.max_level,
             tile_size=self.tile_size,
             tile_format=self.tile_format,
+            tile_background_color=self.tile_background_color,
         )
         for image in images:
             collection.append(image)

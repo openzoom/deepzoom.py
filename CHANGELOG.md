@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add `DeepZoomCollection` and `CollectionCreator` `tile_background_color`
+  parameter for setting background color of collection tiles. This can be useful
+  when working with images that don’t compose well on a black background
+  (default).
+- Respect `DeepZoomCollection` `tile_format` parameter.
+
 ## Version 2.0.0a2 – January 16, 2020
 
 - Format code using [Black].
