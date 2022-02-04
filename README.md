@@ -25,7 +25,7 @@ cd examples/helloworld/
 ./helloworld-dzi.py
 
 # Collection (DZC)
-./helloworld-dzi.py
+./helloworld-dzc.py
 ```
 
 ## Acknowledgements
