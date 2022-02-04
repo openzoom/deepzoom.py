@@ -439,12 +439,11 @@ class ImageCreator(object):
                 tile = level_image.crop(bounds)
                 format = self.descriptor.tile_format
                 tile_path = os.path.join(level_dir, "%s_%s.%s" % (column, row, format))
-                tile_file = open(tile_path, "wb")
                 if self.descriptor.tile_format == "jpg":
                     jpeg_quality = int(self.image_quality * 100)
-                    tile.save(tile_file, "JPEG", quality=jpeg_quality)
+                    tile.save(tile_path, "JPEG", quality=jpeg_quality)
                 else:
-                    tile.save(tile_file)
+                    tile.save(tile_path)
         # Create descriptor
         self.descriptor.save(destination)
 
@@ -545,7 +544,7 @@ def safe_open(path):
     # not a URL. This change is isolated to this function as we want the output
     # XML to still have the original input paths instead of absolute paths:
     has_scheme = bool(urlparse(path).scheme)
-    normalized_path = f"file://{os.path.abspath(path)}" if not has_scheme else path
+    normalized_path = ("file://%s" % os.path.abspath(path)) if not has_scheme else path
     return io.BytesIO(urllib.request.urlopen(normalized_path).read())
 
 
