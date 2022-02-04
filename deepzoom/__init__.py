@@ -36,6 +36,7 @@
 #
 
 import io
+import itertools
 import math
 import optparse
 import os
@@ -48,6 +49,7 @@ import warnings
 import xml.dom.minidom
 
 import PIL.Image
+from tqdm import tqdm, trange
 
 from collections import deque
 
@@ -408,14 +410,16 @@ class ImageCreator(object):
             return self.image.resize((width, height), PIL.Image.ANTIALIAS)
         return self.image.resize((width, height), RESIZE_FILTERS[self.resize_filter])
 
-    def tiles(self, level):
+    def tiles(self, level, quiet=True):
         """Iterator for all tiles in the given level. Returns (column, row) of a tile."""
         columns, rows = self.descriptor.get_num_tiles(level)
-        for column in range(columns):
-            for row in range(rows):
-                yield (column, row)
+        quiet = quiet or (columns * rows < 500)
+        yield from tqdm(
+            itertools.product(range(columns), range(rows)),
+            unit="tile", total=columns*rows, leave=None, disable=quiet
+        )
 
-    def create(self, source, destination):
+    def create(self, source, destination, quiet=True):
         """Creates Deep Zoom image from source file and saves it to destination."""
         if isinstance(source, PIL.Image.Image):
             self.image = source
@@ -431,10 +435,13 @@ class ImageCreator(object):
         )
         # Create tiles
         image_files = _get_or_create_path(_get_files_path(destination))
-        for level in range(self.descriptor.num_levels):
+        for level in trange(
+            self.descriptor.num_levels,
+            desc="Creating DZI", unit="level", disable=quiet
+        ):
             level_dir = _get_or_create_path(os.path.join(image_files, str(level)))
             level_image = self.get_image(level)
-            for (column, row) in self.tiles(level):
+            for (column, row) in self.tiles(level, quiet=quiet):
                 bounds = self.descriptor.get_tile_bounds(level, column, row)
                 tile = level_image.crop(bounds)
                 format = self.descriptor.tile_format
