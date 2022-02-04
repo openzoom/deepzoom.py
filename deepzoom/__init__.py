@@ -439,12 +439,11 @@ class ImageCreator(object):
                 tile = level_image.crop(bounds)
                 format = self.descriptor.tile_format
                 tile_path = os.path.join(level_dir, "%s_%s.%s" % (column, row, format))
-                tile_file = open(tile_path, "wb")
                 if self.descriptor.tile_format == "jpg":
                     jpeg_quality = int(self.image_quality * 100)
-                    tile.save(tile_file, "JPEG", quality=jpeg_quality)
+                    tile.save(tile_path, "JPEG", quality=jpeg_quality)
                 else:
-                    tile.save(tile_file, self.descriptor.tile_format)
+                    tile.save(tile_path)
         # Create descriptor
         self.descriptor.save(destination)
 
