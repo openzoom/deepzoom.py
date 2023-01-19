@@ -544,7 +544,7 @@ def safe_open(path):
     # not a URL. This change is isolated to this function as we want the output
     # XML to still have the original input paths instead of absolute paths:
     has_scheme = bool(urlparse(path).scheme)
-    normalized_path = ("file://%s" % os.path.abspath(path)) if not has_scheme else path
+    normalized_path = ("file:%s" % urllib.request.pathname2url(os.path.abspath(path))) if not has_scheme else path
     return io.BytesIO(urllib.request.urlopen(normalized_path).read())
 
 
