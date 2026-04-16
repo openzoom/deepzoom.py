@@ -42,6 +42,7 @@ import optparse
 import os
 import shutil
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse
 import sys
 import time
@@ -227,29 +228,99 @@ class DeepZoomCollection(object):
     def append(self, source):
         descriptor = DeepZoomImageDescriptor()
         descriptor.open(source)
+        self.append_item(source, descriptor.width, descriptor.height)
+
+    def append_item(self, source, width, height):
+        """Append an item with known dimensions, skipping the descriptor fetch."""
         item = DeepZoomCollectionItem(
-            source, descriptor.width, descriptor.height, id=self.next_item_id
+            source, width, height, id=self.next_item_id
         )
         self.items.append(item)
         self.next_item_id += 1
 
-    def save(self, pretty_print_xml=False):
+    def _prefetch_batch(self, batch, max_workers):
+        """Prefetch .dzi descriptors and max_level tiles for a batch in parallel."""
+        # Phase 1: fetch all .dzi descriptors
+        dzi_urls = [item.source for item in batch]
+        logger.info("Prefetching %d descriptors…", len(dzi_urls))
+        self._parallel_fetch(dzi_urls, max_workers)
+
+        # Phase 2: parse descriptors to get tile format, then fetch max_level tiles
+        tile_urls = []
+        for item in batch:
+            if item.source not in _fetch_cache:
+                continue
+            doc = xml.dom.minidom.parse(safe_open(item.source))
+            image = doc.getElementsByTagName("Image")[0]
+            tile_format = image.getAttribute("Format")
+            tile_url = "%s/%s/%s_%s.%s" % (
+                _get_files_path(item.source), self.max_level, 0, 0, tile_format
+            )
+            tile_urls.append(tile_url)
+
+        logger.info("Prefetching %d tiles…", len(tile_urls))
+        self._parallel_fetch(tile_urls, max_workers)
+
+    def _parallel_fetch(self, urls, max_workers):
+        """Fetch a list of URLs in parallel, populating _fetch_cache."""
+        total = len(urls)
+        done = 0
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(_fetch_url, url): url for url in urls}
+            for future in as_completed(futures):
+                url = futures[future]
+                done += 1
+                try:
+                    _fetch_cache[url] = future.result()
+                    if done % 50 == 0 or done == total:
+                        logger.info("  fetched %d/%d", done, total)
+                except Exception as exception:
+                    logger.warning("Failed to prefetch %s: %s", url, exception)
+
+    def save(self, pretty_print_xml=False, max_workers=8, batch_size=100):
         """Save collection descriptor."""
         collection = self.doc.getElementsByTagName("Collection")[0]
         items = self.doc.getElementsByTagName("Items")[0]
+        total = len(self.items)
+        logger.info("Saving collection: %d items, tile_size=%d, max_level=%d",
+                     total, self.tile_size, self.max_level)
+
+        count = 0
         while len(self.items) > 0:
-            item = self.items.popleft()
-            i = self.doc.createElementNS(NS_DEEPZOOM, "I")
-            i.setAttribute("Id", str(item.id))
-            i.setAttribute("N", str(item.id))
-            i.setAttribute("Source", item.source)
-            # Size
-            size = self.doc.createElementNS(NS_DEEPZOOM, "Size")
-            size.setAttribute("Width", str(item.width))
-            size.setAttribute("Height", str(item.height))
-            i.appendChild(size)
-            items.appendChild(i)
-            self._append_image(item.source, item.id)
+            # Prefetch the next batch
+            batch = []
+            for _ in range(min(batch_size, len(self.items))):
+                batch.append(self.items.popleft())
+
+            if max_workers > 1:
+                self._prefetch_batch(batch, max_workers)
+                logger.info("Cache size: %d entries, ~%.1f MB",
+                            len(_fetch_cache),
+                            sum(len(v) for v in _fetch_cache.values()) / 1e6)
+
+            for item in batch:
+                count += 1
+                logger.info("[%d/%d] Appending item %d: %s (%dx%d)",
+                            count, total, item.id, item.source,
+                            item.width, item.height)
+                i = self.doc.createElementNS(NS_DEEPZOOM, "I")
+                i.setAttribute("Id", str(item.id))
+                i.setAttribute("N", str(item.id))
+                i.setAttribute("Source", item.source)
+                # Size
+                size = self.doc.createElementNS(NS_DEEPZOOM, "Size")
+                size.setAttribute("Width", str(item.width))
+                size.setAttribute("Height", str(item.height))
+                i.appendChild(size)
+                items.appendChild(i)
+                start = time.time()
+                self._append_image(item.source, item.id)
+                elapsed = time.time() - start
+                logger.info("[%d/%d] Done in %.2fs", count, total, elapsed)
+
+            # Free cache for this batch
+            _fetch_cache.clear()
+
         collection.setAttribute("NextItemId", str(self.next_item_id))
         with open(self.source, "wb") as f:
             if pretty_print_xml:
@@ -257,10 +328,16 @@ class DeepZoomCollection(object):
             else:
                 xml = self.doc.toxml(encoding="UTF-8")
             f.write(xml)
+        logger.info("Collection saved to %s", self.source)
 
     def _append_image(self, path, i):
         descriptor = DeepZoomImageDescriptor()
-        descriptor.open(path)
+        try:
+            descriptor.open(path)
+        except Exception as exception:
+            logger.warning("Skipped item %d, failed to open descriptor: %s", i, exception)
+            return
+        logger.debug("Item %d: descriptor loaded, %d levels", i, descriptor.num_levels)
         files_path = _get_or_create_path(_get_files_path(self.source))
         for level in reversed(range(self.max_level + 1)):
             level_path = _get_or_create_path("%s/%s" % (files_path, level))
@@ -544,15 +621,25 @@ def _remove(path):
     shutil.rmtree(tiles_path)
 
 
+_fetch_cache = {}
+
+
 @retry(3)
-def safe_open(path):
+def _fetch_url(path):
+    """Fetch a URL or local path and return its bytes."""
     # `urllib` in Python 2 supported both local paths as well as URLs. Read
     # local paths directly: `urlparse` mistakes Windows drive letters (`C:\…`)
     # for URL schemes, and `#` or `%` in a naive `file://` URL get misread
     if os.path.exists(path) or not urlparse(path).scheme:
         with open(path, "rb") as f:
-            return io.BytesIO(f.read())
-    return io.BytesIO(urllib.request.urlopen(path).read())
+            return f.read()
+    return urllib.request.urlopen(path).read()
+
+
+def safe_open(path):
+    if path in _fetch_cache:
+        return io.BytesIO(_fetch_cache[path])
+    return io.BytesIO(_fetch_url(path))
 
 
 ################################################################################
