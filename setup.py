@@ -13,7 +13,7 @@ Seadragon Mobile, and OpenZoom.",
     keywords="deepzoom seadragon dzi dzc seadragonajax seadragonmobile silverlightdeepzoom microsoft openzoom",
     packages=find_packages(),
     license="BSD 3-Clause License",
-    install_requires=["Pillow>=6"],
+    install_requires=["Pillow>=6", "tqdm"],
     url="https://github.com/openzoom/deepzoom.py",
     include_package_data=True,
     classifiers=[
