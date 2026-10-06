@@ -502,12 +502,13 @@ def retry(attempts, backoff=2):
     def deco_retry(f):
         def f_retry(*args, **kwargs):
             last_exception = None
-            for _ in range(attempts):
+            for attempt in range(attempts):
                 try:
                     return f(*args, **kwargs)
                 except Exception as exception:
                     last_exception = exception
-                    time.sleep(backoff ** (attempts + 1))
+                    if attempt < attempts - 1:
+                        time.sleep(backoff ** attempt)
             raise last_exception
 
         return f_retry
