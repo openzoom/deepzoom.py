@@ -36,21 +36,22 @@
 #
 
 import io
+import logging
 import math
 import optparse
 import os
 import shutil
+from collections import deque
 from urllib.parse import urlparse
 import sys
 import time
 import urllib.request
-import warnings
 import xml.dom.minidom
 
 import PIL.Image
 
-from collections import deque
 
+logger = logging.getLogger(__name__)
 
 NS_DEEPZOOM = "http://schemas.microsoft.com/deepzoom/2008"
 
@@ -289,7 +290,7 @@ class DeepZoomCollection(object):
                 try:
                     source_image = PIL.Image.open(safe_open(source_path))
                 except IOError:
-                    warnings.warn("Skipped invalid level: %s" % source_path)
+                    logger.warning("Skipped invalid level: %s", source_path)
                     continue
             # Remote
             else:
@@ -297,7 +298,7 @@ class DeepZoomCollection(object):
                     try:
                         source_image = PIL.Image.open(safe_open(source_path))
                     except IOError:
-                        warnings.warn("Skipped invalid image: %s" % source_path)
+                        logger.warning("Skipped invalid image: %s", source_path)
                         return
                     # Expected width & height of the tile
                     e_w, e_h = descriptor.get_dimensions(level)
@@ -508,7 +509,10 @@ def retry(attempts, backoff=2):
                 except Exception as exception:
                     last_exception = exception
                     if attempt < attempts - 1:
-                        time.sleep(backoff ** attempt)
+                        delay = backoff ** attempt
+                        logger.debug("Retry %d/%d in %ds: %s",
+                                     attempt + 1, attempts, delay, exception)
+                        time.sleep(delay)
             raise last_exception
 
         return f_retry
