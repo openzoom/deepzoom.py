@@ -313,9 +313,12 @@ class DeepZoomCollection(object):
                         # Store new dimensions
                         w, h = e_w, e_h
                 else:
-                    w = int(math.ceil(w * 0.5))
-                    h = int(math.ceil(h * 0.5))
-                    source_image.thumbnail((w, h), DEFAULT_RESIZE_FILTER)
+                    # Resize to the exact Deep Zoom level size (rounded up).
+                    # thumbnail() keeps the aspect ratio and can come out a
+                    # pixel smaller, so viewers sampling the spec size read
+                    # past the item into the tile background.
+                    w, h = descriptor.get_dimensions(level)
+                    source_image = source_image.resize((w, h), DEFAULT_RESIZE_FILTER)
             column, row = self.get_position(i)
             x = (column % images_per_tile) * level_size
             y = (row % images_per_tile) * level_size
