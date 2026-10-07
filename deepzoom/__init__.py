@@ -41,7 +41,7 @@ import math
 import optparse
 import os
 import shutil
-from collections import deque
+from collections import deque, namedtuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse
 import sys
@@ -70,6 +70,84 @@ IMAGE_FORMATS = {
     "jpg": "jpg",
     "png": "png",
 }
+
+
+def morton_decode(z_order):
+    """Returns position (column, row) from given Z-order (Morton number)."""
+    column = 0
+    row = 0
+    for i in range(0, 32, 2):
+        offset = i // 2
+        # column
+        column_offset = i
+        column_mask = 1 << column_offset
+        column_value = (z_order & column_mask) >> column_offset
+        column |= column_value << offset
+        # row
+        row_offset = i + 1
+        row_mask = 1 << row_offset
+        row_value = (z_order & row_mask) >> row_offset
+        row |= row_value << offset
+    return int(column), int(row)
+
+
+def morton_encode(column, row):
+    """Returns the Z-order (Morton number) from given position."""
+    z_order = 0
+    for i in range(32):
+        z_order |= (column & 1 << i) << i | (row & 1 << i) << (i + 1)
+    return z_order
+
+
+def collection_tile_position(z_order, level, tile_size):
+    """Returns which collection tile (column, row) a given item lands in."""
+    level_size = 2 ** level
+    x, y = morton_decode(z_order)
+    return (
+        int(math.floor((x * level_size) / tile_size)),
+        int(math.floor((y * level_size) / tile_size)),
+    )
+
+
+def collection_paste_position(z_order, level, tile_size):
+    """Returns the (x, y) pixel position of an item within its collection tile."""
+    level_size = 2 ** level
+    images_per_tile = int(math.floor(tile_size / level_size))
+    column, row = morton_decode(z_order)
+    x = (column % images_per_tile) * level_size
+    y = (row % images_per_tile) * level_size
+    return (x, y)
+
+
+PlacementStep = namedtuple(
+    "PlacementStep",
+    [
+        "level",
+        # (column, row) of the collection tile file
+        "collection_tile",
+        # (x, y) pixel offset of the item within that tile
+        "paste_position",
+    ],
+)
+
+
+def compute_placement_plan(z_order, max_level, tile_size):
+    """Returns where an item goes in a collection, as one `PlacementStep` per
+    level from `max_level` down to 0."""
+    return [
+        PlacementStep(
+            level=level,
+            collection_tile=collection_tile_position(z_order, level, tile_size),
+            paste_position=collection_paste_position(z_order, level, tile_size),
+        )
+        for level in reversed(range(max_level + 1))
+    ]
+
+
+def item_source_tile_path(source, level, tile_format):
+    """Returns the path of the tile a collection item is built from at
+    `level`, assuming the item fits into a single tile at that level."""
+    return "%s/%s/%s_%s.%s" % (_get_files_path(source), level, 0, 0, tile_format)
 
 
 class DeepZoomImageDescriptor(object):
@@ -253,10 +331,9 @@ class DeepZoomCollection(object):
             doc = xml.dom.minidom.parse(safe_open(item.source))
             image = doc.getElementsByTagName("Image")[0]
             tile_format = image.getAttribute("Format")
-            tile_url = "%s/%s/%s_%s.%s" % (
-                _get_files_path(item.source), self.max_level, 0, 0, tile_format
+            tile_urls.append(
+                item_source_tile_path(item.source, self.max_level, tile_format)
             )
-            tile_urls.append(tile_url)
 
         logger.info("Prefetching %d tiles…", len(tile_urls))
         self._parallel_fetch(tile_urls, max_workers)
@@ -339,11 +416,11 @@ class DeepZoomCollection(object):
             return
         logger.debug("Item %d: descriptor loaded, %d levels", i, descriptor.num_levels)
         files_path = _get_or_create_path(_get_files_path(self.source))
-        for level in reversed(range(self.max_level + 1)):
+        plan = compute_placement_plan(i, self.max_level, self.tile_size)
+        for step in plan:
+            level = step.level
             level_path = _get_or_create_path("%s/%s" % (files_path, level))
-            level_size = 2 ** level
-            images_per_tile = int(math.floor(self.tile_size / level_size))
-            column, row = self.get_tile_position(i, level, self.tile_size)
+            column, row = step.collection_tile
             tile_path = "%s/%s_%s.%s" % (level_path, column, row, self.tile_format)
             if not os.path.exists(tile_path):
                 tile_image = PIL.Image.new(
@@ -355,13 +432,7 @@ class DeepZoomCollection(object):
                 else:
                     tile_image.save(tile_path)
             tile_image = PIL.Image.open(tile_path)
-            source_path = "%s/%s/%s_%s.%s" % (
-                _get_files_path(path),
-                level,
-                0,
-                0,
-                descriptor.tile_format,
-            )
+            source_path = item_source_tile_path(path, level, descriptor.tile_format)
             # Local
             if os.path.exists(source_path):
                 try:
@@ -397,44 +468,19 @@ class DeepZoomCollection(object):
                     # past the item into the tile background.
                     w, h = descriptor.get_dimensions(level)
                     source_image = source_image.resize((w, h), DEFAULT_RESIZE_FILTER)
-            column, row = self.get_position(i)
-            x = (column % images_per_tile) * level_size
-            y = (row % images_per_tile) * level_size
-            tile_image.paste(source_image, (x, y))
+            tile_image.paste(source_image, step.paste_position)
             tile_image.save(tile_path)
 
     def get_position(self, z_order):
         """Returns position (column, row) from given Z-order (Morton number.)"""
-        column = 0
-        row = 0
-        for i in range(0, 32, 2):
-            offset = i // 2
-            # column
-            column_offset = i
-            column_mask = 1 << column_offset
-            column_value = (z_order & column_mask) >> column_offset
-            column |= column_value << offset
-            # row
-            row_offset = i + 1
-            row_mask = 1 << row_offset
-            row_value = (z_order & row_mask) >> row_offset
-            row |= row_value << offset
-        return int(column), int(row)
+        return morton_decode(z_order)
 
     def get_z_order(self, column, row):
         """Returns the Z-order (Morton number) from given position."""
-        z_order = 0
-        for i in range(32):
-            z_order |= (column & 1 << i) << i | (row & 1 << i) << (i + 1)
-        return z_order
+        return morton_encode(column, row)
 
     def get_tile_position(self, z_order, level, tile_size):
-        level_size = 2 ** level
-        x, y = self.get_position(z_order)
-        return (
-            int(math.floor((x * level_size) / tile_size)),
-            int(math.floor((y * level_size) / tile_size)),
-        )
+        return collection_tile_position(z_order, level, tile_size)
 
 
 class DeepZoomCollectionItem(object):
