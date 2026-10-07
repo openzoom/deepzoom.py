@@ -123,37 +123,31 @@ PlacementStep = namedtuple(
     "PlacementStep",
     [
         "level",
-        "level_size",
-        "images_per_tile",
         # (column, row) of the collection tile file
         "collection_tile",
         # (x, y) pixel offset of the item within that tile
         "paste_position",
-        # Path of the item’s source tile relative to its `_files` folder,
-        # e.g. `8/0_0.jpg`
-        "source_tile_path_suffix",
     ],
 )
 
 
-def compute_placement_plan(z_order, max_level, tile_size, source_tile_format):
+def compute_placement_plan(z_order, max_level, tile_size):
     """Returns where an item goes in a collection, as one `PlacementStep` per
     level from `max_level` down to 0."""
-    plan = []
-    for level in reversed(range(max_level + 1)):
-        level_size = 2 ** level
-        plan.append(
-            PlacementStep(
-                level=level,
-                level_size=level_size,
-                images_per_tile=int(math.floor(tile_size / level_size)),
-                collection_tile=collection_tile_position(z_order, level, tile_size),
-                paste_position=collection_paste_position(z_order, level, tile_size),
-                source_tile_path_suffix="%s/%s_%s.%s"
-                % (level, 0, 0, source_tile_format),
-            )
+    return [
+        PlacementStep(
+            level=level,
+            collection_tile=collection_tile_position(z_order, level, tile_size),
+            paste_position=collection_paste_position(z_order, level, tile_size),
         )
-    return plan
+        for level in reversed(range(max_level + 1))
+    ]
+
+
+def item_source_tile_path(source, level, tile_format):
+    """Returns the path of the tile a collection item is built from at
+    `level`, assuming the item fits into a single tile at that level."""
+    return "%s/%s/%s_%s.%s" % (_get_files_path(source), level, 0, 0, tile_format)
 
 
 class DeepZoomImageDescriptor(object):
@@ -337,10 +331,9 @@ class DeepZoomCollection(object):
             doc = xml.dom.minidom.parse(safe_open(item.source))
             image = doc.getElementsByTagName("Image")[0]
             tile_format = image.getAttribute("Format")
-            tile_url = "%s/%s/%s_%s.%s" % (
-                _get_files_path(item.source), self.max_level, 0, 0, tile_format
+            tile_urls.append(
+                item_source_tile_path(item.source, self.max_level, tile_format)
             )
-            tile_urls.append(tile_url)
 
         logger.info("Prefetching %d tiles…", len(tile_urls))
         self._parallel_fetch(tile_urls, max_workers)
@@ -423,9 +416,7 @@ class DeepZoomCollection(object):
             return
         logger.debug("Item %d: descriptor loaded, %d levels", i, descriptor.num_levels)
         files_path = _get_or_create_path(_get_files_path(self.source))
-        plan = compute_placement_plan(
-            i, self.max_level, self.tile_size, descriptor.tile_format
-        )
+        plan = compute_placement_plan(i, self.max_level, self.tile_size)
         for step in plan:
             level = step.level
             level_path = _get_or_create_path("%s/%s" % (files_path, level))
@@ -441,7 +432,7 @@ class DeepZoomCollection(object):
                 else:
                     tile_image.save(tile_path)
             tile_image = PIL.Image.open(tile_path)
-            source_path = "%s/%s" % (_get_files_path(path), step.source_tile_path_suffix)
+            source_path = item_source_tile_path(path, level, descriptor.tile_format)
             # Local
             if os.path.exists(source_path):
                 try:
