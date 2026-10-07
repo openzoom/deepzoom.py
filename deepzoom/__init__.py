@@ -546,13 +546,13 @@ def _remove(path):
 
 @retry(3)
 def safe_open(path):
-    # `urllib` in Python 2 supported both local paths as well as URLs. To
-    # continue this in Python 3, we manually add `file://` prefix if `path` is
-    # not a URL. This change is isolated to this function as we want the output
-    # XML to still have the original input paths instead of absolute paths:
-    has_scheme = bool(urlparse(path).scheme)
-    normalized_path = ("file://%s" % os.path.abspath(path)) if not has_scheme else path
-    return io.BytesIO(urllib.request.urlopen(normalized_path).read())
+    # `urllib` in Python 2 supported both local paths as well as URLs. Read
+    # local paths directly: `urlparse` mistakes Windows drive letters (`C:\…`)
+    # for URL schemes, and `#` or `%` in a naive `file://` URL get misread
+    if os.path.exists(path) or not urlparse(path).scheme:
+        with open(path, "rb") as f:
+            return io.BytesIO(f.read())
+    return io.BytesIO(urllib.request.urlopen(path).read())
 
 
 ################################################################################
