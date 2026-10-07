@@ -1,8 +1,6 @@
 """Property-based tests using Hypothesis for the collection math."""
 
-import math
-
-from hypothesis import given, settings, assume
+from hypothesis import given, assume
 from hypothesis import strategies as st
 
 import deepzoom
@@ -14,7 +12,6 @@ grid_coords = st.integers(min_value=0, max_value=255)
 levels = st.integers(min_value=0, max_value=8)
 tile_sizes = st.sampled_from([256, 512, 1024])
 image_dimensions = st.integers(min_value=1, max_value=50000)
-tile_overlaps = st.integers(min_value=0, max_value=10)
 
 
 @st.composite
@@ -147,58 +144,30 @@ class TestDescriptorProperties:
 class TestCollectionPlacementProperties:
     @given(z=st.integers(min_value=0, max_value=255), level=levels, tile_size=tile_sizes)
     def test_tile_position_non_negative(self, z, level, tile_size):
-        c = deepzoom.DeepZoomCollection("unused.dzc")
-        col, row = c.get_tile_position(z, level, tile_size)
-        assert col >= 0
+        column, row = deepzoom.collection_tile_position(z, level, tile_size)
+        assert column >= 0
         assert row >= 0
 
     @given(z=st.integers(min_value=0, max_value=255), level=levels, tile_size=tile_sizes)
     def test_paste_position_within_tile(self, z, level, tile_size):
-        c = deepzoom.DeepZoomCollection("unused.dzc")
-        level_size = 2 ** level
-        images_per_tile = int(math.floor(tile_size / level_size))
-        assume(images_per_tile > 0)
-        col, row = c.get_position(z)
-        x = (col % images_per_tile) * level_size
-        y = (row % images_per_tile) * level_size
+        x, y = deepzoom.collection_paste_position(z, level, tile_size)
         assert 0 <= x < tile_size
         assert 0 <= y < tile_size
 
     @given(tile_size=tile_sizes, level=levels)
-    def test_no_paste_collisions_within_tile(self, tile_size, level):
-        """All images assigned to the same tile get distinct paste positions."""
-        c = deepzoom.DeepZoomCollection("unused.dzc")
-        level_size = 2 ** level
-        images_per_tile = int(math.floor(tile_size / level_size))
-        assume(images_per_tile > 0)
-
+    def test_no_collisions(self, tile_size, level):
+        """Every item gets its own slot, across all collection tiles."""
         seen = {}
-        for z in range(min(64, images_per_tile * images_per_tile)):
-            tile = c.get_tile_position(z, level, tile_size)
-            col, row = c.get_position(z)
-            paste = ((col % images_per_tile) * level_size,
-                     (row % images_per_tile) * level_size)
-            key = (tile, paste)
-            assert key not in seen, (
-                f"z={z} collides with z={seen[key]} at tile={tile} paste={paste} level={level}"
+        for z in range(256):
+            slot = (
+                deepzoom.collection_tile_position(z, level, tile_size),
+                deepzoom.collection_paste_position(z, level, tile_size),
             )
-            seen[key] = z
+            assert slot not in seen, (
+                f"z={z} collides with z={seen[slot]} at {slot}, level={level}"
+            )
+            seen[slot] = z
 
     @given(z=st.integers(min_value=0, max_value=255), tile_size=tile_sizes)
     def test_level_0_all_in_same_tile(self, z, tile_size):
-        c = deepzoom.DeepZoomCollection("unused.dzc")
-        assert c.get_tile_position(z, 0, tile_size) == (0, 0)
-
-    @given(z=st.integers(min_value=0, max_value=255))
-    def test_first_image_always_at_origin(self, z):
-        """z=0 always pastes at (0,0) regardless of level."""
-        c = deepzoom.DeepZoomCollection("unused.dzc")
-        for level in range(9):
-            level_size = 2 ** level
-            images_per_tile = int(math.floor(512 / level_size))
-            if images_per_tile == 0:
-                continue
-            col, row = c.get_position(0)
-            x = (col % images_per_tile) * level_size
-            y = (row % images_per_tile) * level_size
-            assert (x, y) == (0, 0)
+        assert deepzoom.collection_tile_position(z, 0, tile_size) == (0, 0)

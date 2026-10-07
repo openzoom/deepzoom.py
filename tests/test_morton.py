@@ -1,7 +1,5 @@
 """Tests for Z-order (Morton) curve encode/decode functions."""
 
-import pytest
-
 
 class TestMortonDecode:
     """get_position: z-order index → (column, row) in the image grid."""

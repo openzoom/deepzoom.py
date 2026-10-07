@@ -1,8 +1,6 @@
 """Tests for collection tile placement math."""
 
-import math
-
-import pytest
+import deepzoom
 
 
 TILE_SIZE = 512
@@ -50,70 +48,43 @@ class TestGetTilePosition:
                 )
 
 
-class TestImagesPerTile:
-    """Verify the images_per_tile formula at each level."""
-
-    @pytest.mark.parametrize(
-        "level, expected",
-        [
-            (0, 512),
-            (1, 256),
-            (2, 128),
-            (3, 64),
-            (4, 32),
-            (5, 16),
-            (6, 8),
-            (7, 4),
-            (8, 2),
-        ],
-    )
-    def test_images_per_tile(self, level, expected):
-        level_size = 2 ** level
-        images_per_tile = int(math.floor(TILE_SIZE / level_size))
-        assert images_per_tile == expected
+def _paste_position(z_order, level):
+    return deepzoom.collection_paste_position(z_order, level, TILE_SIZE)
 
 
 class TestPasteCoordinates:
     """Verify the (x, y) pixel position within a collection tile."""
 
-    def _paste_position(self, collection, z_order, level, tile_size=TILE_SIZE):
-        level_size = 2 ** level
-        images_per_tile = int(math.floor(tile_size / level_size))
-        column, row = collection.get_position(z_order)
-        x = (column % images_per_tile) * level_size
-        y = (row % images_per_tile) * level_size
-        return x, y
-
-    def test_first_image_always_at_origin(self, collection):
+    def test_first_image_always_at_origin(self):
         for level in range(MAX_LEVEL + 1):
-            assert self._paste_position(collection, 0, level) == (0, 0), (
+            assert _paste_position(0, level) == (0, 0), (
                 f"z=0 should be at (0,0) at level {level}"
             )
 
-    def test_second_image_at_max_level(self, collection):
+    def test_second_image_at_max_level(self):
         # z=1 → (1, 0), level_size=256 → paste at (256, 0)
-        assert self._paste_position(collection, 1, 8) == (256, 0)
+        assert _paste_position(1, 8) == (256, 0)
 
-    def test_third_image_at_max_level(self, collection):
+    def test_third_image_at_max_level(self):
         # z=2 → (0, 1), level_size=256 → paste at (0, 256)
-        assert self._paste_position(collection, 2, 8) == (0, 256)
+        assert _paste_position(2, 8) == (0, 256)
 
-    def test_diagonal_image_at_max_level(self, collection):
+    def test_diagonal_image_at_max_level(self):
         # z=3 → (1, 1), level_size=256 → paste at (256, 256)
-        assert self._paste_position(collection, 3, 8) == (256, 256)
+        assert _paste_position(3, 8) == (256, 256)
 
-    def test_image_at_level_0(self, collection):
+    def test_image_at_level_0(self):
         # z=1 → (1, 0), level_size=1 → paste at (1, 0)
-        assert self._paste_position(collection, 1, 0) == (1, 0)
+        assert _paste_position(1, 0) == (1, 0)
 
-    def test_image_at_level_7(self, collection):
+    def test_image_at_level_7(self):
         # z=1 → (1, 0), level_size=128 → paste at (128, 0)
-        assert self._paste_position(collection, 1, 7) == (128, 0)
+        assert _paste_position(1, 7) == (128, 0)
 
-    def test_paste_never_exceeds_tile_size(self, collection):
+    def test_paste_never_exceeds_tile_size(self):
         for z in range(64):
             for level in range(MAX_LEVEL + 1):
-                x, y = self._paste_position(collection, z, level)
+                x, y = _paste_position(z, level)
                 assert x < TILE_SIZE, f"z={z} level={level}: x={x} >= {TILE_SIZE}"
                 assert y < TILE_SIZE, f"z={z} level={level}: y={y} >= {TILE_SIZE}"
 
@@ -123,7 +94,7 @@ class TestPasteCoordinates:
             tiles = {}
             for z in range(64):
                 tile = collection.get_tile_position(z, level, TILE_SIZE)
-                paste = self._paste_position(collection, z, level)
+                paste = _paste_position(z, level)
                 key = (tile, paste)
                 assert key not in tiles, (
                     f"z={z} and z={tiles[key]} both paste at {paste} "
