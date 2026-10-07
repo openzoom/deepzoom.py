@@ -71,6 +71,10 @@ IMAGE_FORMATS = {
     "png": "png",
 }
 
+# Image modes JPEG can store; others are flattened onto JPEG_BACKGROUND_COLOR
+JPEG_MODES = ("1", "L", "RGB", "CMYK")
+JPEG_BACKGROUND_COLOR = "#000000"
+
 
 def morton_decode(z_order):
     """Returns position (column, row) from given Z-order (Morton number)."""
@@ -557,6 +561,8 @@ class ImageCreator(object):
             self.image = source
         else:
             self.image = PIL.Image.open(safe_open(source))
+        if self.tile_format == "jpg" and self.image.mode not in JPEG_MODES:
+            self.image = _flatten(self.image, JPEG_BACKGROUND_COLOR)
         width, height = self.image.size
         self.descriptor = DeepZoomImageDescriptor(
             width=width,
@@ -657,6 +663,14 @@ def _get_or_create_path(path):
     if not os.path.exists(path):
         os.makedirs(path)
     return path
+
+
+def _flatten(image, background_color):
+    """Returns image as RGB, composited onto background_color by its alpha."""
+    image = image.convert("RGBA")
+    flattened = PIL.Image.new("RGB", image.size, background_color)
+    flattened.paste(image, mask=image)
+    return flattened
 
 
 def _clamp(val, min, max):
