@@ -172,6 +172,16 @@ class DeepZoomCollection(object):
         tile_background_color="#000000",
         items=[],
     ):
+        # Items are laid out on a grid of `2 ** level` sized cells, so a tile
+        # must hold a whole number of them at every level. Otherwise items
+        # overlap, or there is no room for a single item
+        if tile_size < 1 or tile_size & (tile_size - 1) != 0:
+            raise ValueError("tile_size must be a power of two: %s" % tile_size)
+        if 2 ** max_level > tile_size:
+            raise ValueError(
+                "max_level %s items (%s px) don’t fit into tile_size %s"
+                % (max_level, 2 ** max_level, tile_size)
+            )
         self.source = filename
         self.image_quality = image_quality
         self.tile_size = tile_size
