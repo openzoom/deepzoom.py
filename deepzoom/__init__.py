@@ -59,6 +59,9 @@ NS_DEEPZOOM = "http://schemas.microsoft.com/deepzoom/2008"
 DEFAULT_RESIZE_FILTER = PIL.Image.LANCZOS
 DEFAULT_IMAGE_FORMAT = "jpg"
 
+# How often `ImageCreator.create` logs progress
+PROGRESS_STEP_PERCENT = 10
+
 RESIZE_FILTERS = {
     "bilinear": PIL.Image.BILINEAR,
     "bicubic": PIL.Image.BICUBIC,
@@ -565,10 +568,27 @@ class ImageCreator(object):
             tile_overlap=self.tile_overlap,
             tile_format=self.tile_format,
         )
+        # Report progress by share of all tiles: each level has about four
+        # times the tiles of the one before, so most time goes to the last
+        max_level = self.descriptor.num_levels - 1
+        total_tiles = sum(
+            columns * rows
+            for columns, rows in map(
+                self.descriptor.get_num_tiles, range(self.descriptor.num_levels)
+            )
+        )
+        logger.info(
+            "Creating %s: %d × %d, %d levels, %d tiles",
+            destination, width, height, self.descriptor.num_levels, total_tiles,
+        )
+        start = time.time()
+        done_tiles = 0
+        next_report_percent = 0
         # Create tiles
         image_files = _get_or_create_path(_get_files_path(destination))
         for level in range(self.descriptor.num_levels):
             level_dir = _get_or_create_path(os.path.join(image_files, str(level)))
+            logger.debug("Resizing level %d/%d…", level, max_level)
             level_image = self.get_image(level)
             for (column, row) in self.tiles(level):
                 bounds = self.descriptor.get_tile_bounds(level, column, row)
@@ -580,8 +600,19 @@ class ImageCreator(object):
                     tile.save(tile_path, "JPEG", quality=jpeg_quality)
                 else:
                     tile.save(tile_path)
+                done_tiles += 1
+                percent = 100 * done_tiles // total_tiles
+                if percent >= next_report_percent:
+                    logger.info(
+                        "%3d%% (%d/%d tiles, level %d/%d)",
+                        percent, done_tiles, total_tiles, level, max_level,
+                    )
+                    next_report_percent = (
+                        percent // PROGRESS_STEP_PERCENT + 1
+                    ) * PROGRESS_STEP_PERCENT
         # Create descriptor
         self.descriptor.save(destination)
+        logger.info("Saved %s in %.1fs", destination, time.time() - start)
 
 
 class CollectionCreator(object):
@@ -742,6 +773,14 @@ def main():
         help="Quality of the image output (0-1). Default: 0.8",
     )
     parser.add_option(
+        "-v",
+        "--verbose",
+        dest="verbose",
+        action="store_true",
+        default=False,
+        help="Log progress while creating tiles.",
+    )
+    parser.add_option(
         "-r",
         "--resize_filter",
         dest="resize_filter",
@@ -756,6 +795,9 @@ def main():
         sys.exit(1)
 
     source = args[0]
+
+    if options.verbose:
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     if not options.destination:
         if os.path.exists(source):
