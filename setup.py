@@ -14,6 +14,7 @@ Seadragon Mobile, and OpenZoom.",
     packages=find_packages(),
     license="BSD 3-Clause License",
     install_requires=["Pillow>=6"],
+    extras_require={"test": ["hypothesis", "pytest"]},
     url="https://github.com/openzoom/deepzoom.py",
     include_package_data=True,
     classifiers=[

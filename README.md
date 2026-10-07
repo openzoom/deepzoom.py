@@ -16,6 +16,13 @@ Install for local development:
 python3 -m pip install -e .
 ```
 
+Run tests:
+
+```
+python3 -m pip install -e '.[test]'
+python3 -m pytest
+```
+
 ## Example
 
 ```bash
