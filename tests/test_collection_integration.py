@@ -37,17 +37,17 @@ def open_tile(dzc_path, level, column, row, tile_format="png"):
 
 def sample_color(image, x, y, margin=2):
     """Sample average color in a small region to avoid edge artifacts."""
-    r_total, g_total, b_total, count = 0, 0, 0, 0
-    for dx in range(margin):
-        for dy in range(margin):
-            px, py = x + dx, y + dy
-            if px < image.width and py < image.height:
-                r, g, b = image.getpixel((px, py))[:3]
-                r_total += r
-                g_total += g
-                b_total += b
+    red_total, green_total, blue_total, count = 0, 0, 0, 0
+    for offset_x in range(margin):
+        for offset_y in range(margin):
+            pixel_x, pixel_y = x + offset_x, y + offset_y
+            if pixel_x < image.width and pixel_y < image.height:
+                red, green, blue = image.getpixel((pixel_x, pixel_y))[:3]
+                red_total += red
+                green_total += green
+                blue_total += blue
                 count += 1
-    return (r_total // count, g_total // count, b_total // count)
+    return (red_total // count, green_total // count, blue_total // count)
 
 
 class TestSingleImage:
@@ -57,16 +57,16 @@ class TestSingleImage:
 
         tile = open_tile(dzc, MAX_LEVEL, 0, 0)
         assert tile.size == (TILE_SIZE, TILE_SIZE)
-        r, g, b = sample_color(tile, 0, 0)
-        assert r > 200 and g < 50 and b < 50, f"Expected red, got ({r},{g},{b})"
+        red, green, blue = sample_color(tile, 0, 0)
+        assert red > 200 and green < 50 and blue < 50, f"Expected red, got ({red},{green},{blue})"
 
     def test_background_is_black(self, tmp_path, create_solid_dzi):
         dzi = create_solid_dzi(tmp_path, "small", 300, 300, (255, 255, 0))
         dzc = make_collection(tmp_path, [dzi])
 
         tile = open_tile(dzc, MAX_LEVEL, 0, 0)
-        r, g, b = sample_color(tile, 400, 400)
-        assert r < 10 and g < 10 and b < 10, f"Expected black, got ({r},{g},{b})"
+        red, green, blue = sample_color(tile, 400, 400)
+        assert red < 10 and green < 10 and blue < 10, f"Expected black, got ({red},{green},{blue})"
 
 
 class TestTwoImages:
@@ -77,11 +77,11 @@ class TestTwoImages:
         dzc = make_collection(tmp_path, [red_dzi, blue_dzi])
 
         tile = open_tile(dzc, MAX_LEVEL, 0, 0)
-        r, g, b = sample_color(tile, 0, 0)
-        assert r > 200 and b < 50, f"Expected red at (0,0), got ({r},{g},{b})"
+        red, green, blue = sample_color(tile, 0, 0)
+        assert red > 200 and blue < 50, f"Expected red at (0,0), got ({red},{green},{blue})"
 
-        r, g, b = sample_color(tile, 256, 0)
-        assert b > 200 and r < 50, f"Expected blue at (256,0), got ({r},{g},{b})"
+        red, green, blue = sample_color(tile, 256, 0)
+        assert blue > 200 and red < 50, f"Expected blue at (256,0), got ({red},{green},{blue})"
 
 
 class TestFourImages:
@@ -99,8 +99,8 @@ class TestFourImages:
         tile = open_tile(dzc, MAX_LEVEL, 0, 0)
         positions = [(0, 0), (256, 0), (0, 256), (256, 256)]
         for (name, expected_color), (x, y) in zip(colors, positions):
-            r, g, b = sample_color(tile, x, y)
-            for actual, expected, channel in zip((r, g, b), expected_color, "RGB"):
+            red, green, blue = sample_color(tile, x, y)
+            for actual, expected, channel in zip((red, green, blue), expected_color, "RGB"):
                 if expected > 128:
                     assert actual > 200, f"{name} at ({x},{y}): {channel}={actual}"
                 else:
@@ -118,8 +118,8 @@ class TestTileBoundary:
         assert os.path.exists(os.path.join(files_path, str(MAX_LEVEL), "1_0.png"))
 
         tile = open_tile(dzc, MAX_LEVEL, 1, 0)
-        r, g, b = sample_color(tile, 0, 0)
-        assert r > 150, f"Expected bright red for image 4, got ({r},{g},{b})"
+        red, green, blue = sample_color(tile, 0, 0)
+        assert red > 150, f"Expected bright red for image 4, got ({red},{green},{blue})"
 
 
 class TestMultiLevel:
@@ -130,8 +130,8 @@ class TestMultiLevel:
         dzc = make_collection(tmp_path, [red_dzi, blue_dzi])
 
         tile = open_tile(dzc, 7, 0, 0)
-        r, g, b = sample_color(tile, 128, 0)
-        assert b > 200, f"At level 7, blue at x=128, got ({r},{g},{b})"
+        red, green, blue = sample_color(tile, 128, 0)
+        assert blue > 200, f"At level 7, blue at x=128, got ({red},{green},{blue})"
 
     def test_level_0_each_image_1px(self, tmp_path, create_solid_dzi):
         red_dzi = create_solid_dzi(tmp_path, "red", 300, 300, (255, 0, 0))
@@ -139,10 +139,10 @@ class TestMultiLevel:
         dzc = make_collection(tmp_path, [red_dzi, blue_dzi])
 
         tile = open_tile(dzc, 0, 0, 0)
-        r0, g0, b0 = tile.getpixel((0, 0))[:3]
-        r1, g1, b1 = tile.getpixel((1, 0))[:3]
-        assert r0 > 200, f"z=0 at level 0: expected red, got ({r0},{g0},{b0})"
-        assert b1 > 200, f"z=1 at level 0: expected blue, got ({r1},{g1},{b1})"
+        first_red, first_green, first_blue = tile.getpixel((0, 0))[:3]
+        second_red, second_green, second_blue = tile.getpixel((1, 0))[:3]
+        assert first_red > 200, f"z=0 at level 0: expected red, got ({first_red},{first_green},{first_blue})"
+        assert second_blue > 200, f"z=1 at level 0: expected blue, got ({second_red},{second_green},{second_blue})"
 
 
 class TestBackgroundColor:
@@ -151,8 +151,8 @@ class TestBackgroundColor:
         dzc = make_collection(tmp_path, [dzi], tile_background_color="#FFFFFF")
 
         tile = open_tile(dzc, MAX_LEVEL, 0, 0)
-        r, g, b = sample_color(tile, 400, 400)
-        assert r > 240 and g > 240 and b > 240, f"Expected white, got ({r},{g},{b})"
+        red, green, blue = sample_color(tile, 400, 400)
+        assert red > 240 and green > 240 and blue > 240, f"Expected white, got ({red},{green},{blue})"
 
 
 class TestTileFormat:

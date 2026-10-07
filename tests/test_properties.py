@@ -20,11 +20,11 @@ def valid_descriptor_and_level(draw):
     height = draw(st.integers(min_value=1, max_value=10000))
     tile_size = draw(st.sampled_from([128, 256, 510, 512]))
     tile_overlap = draw(st.integers(min_value=0, max_value=10))
-    d = deepzoom.DeepZoomImageDescriptor(
+    descriptor = deepzoom.DeepZoomImageDescriptor(
         width=width, height=height, tile_size=tile_size, tile_overlap=tile_overlap,
     )
-    level = draw(st.integers(min_value=0, max_value=d.num_levels - 1))
-    return d, level
+    level = draw(st.integers(min_value=0, max_value=descriptor.num_levels - 1))
+    return descriptor, level
 
 
 # ---- Morton curve properties ----
@@ -32,38 +32,38 @@ def valid_descriptor_and_level(draw):
 class TestMortonProperties:
     @given(z=z_orders)
     def test_decode_encode_roundtrip(self, z):
-        c = deepzoom.DeepZoomCollection("unused.dzc")
-        col, row = c.get_position(z)
-        assert c.get_z_order(col, row) == z
+        collection = deepzoom.DeepZoomCollection("unused.dzc")
+        column, row = collection.get_position(z)
+        assert collection.get_z_order(column, row) == z
 
-    @given(col=grid_coords, row=grid_coords)
-    def test_encode_decode_roundtrip(self, col, row):
-        c = deepzoom.DeepZoomCollection("unused.dzc")
-        z = c.get_z_order(col, row)
-        assert c.get_position(z) == (col, row)
+    @given(column=grid_coords, row=grid_coords)
+    def test_encode_decode_roundtrip(self, column, row):
+        collection = deepzoom.DeepZoomCollection("unused.dzc")
+        z = collection.get_z_order(column, row)
+        assert collection.get_position(z) == (column, row)
 
     @given(z=z_orders)
     def test_decode_produces_non_negative(self, z):
-        c = deepzoom.DeepZoomCollection("unused.dzc")
-        col, row = c.get_position(z)
-        assert col >= 0
+        collection = deepzoom.DeepZoomCollection("unused.dzc")
+        column, row = collection.get_position(z)
+        assert column >= 0
         assert row >= 0
 
-    @given(col=grid_coords, row=grid_coords)
-    def test_encode_produces_non_negative(self, col, row):
-        c = deepzoom.DeepZoomCollection("unused.dzc")
-        assert c.get_z_order(col, row) >= 0
+    @given(column=grid_coords, row=grid_coords)
+    def test_encode_produces_non_negative(self, column, row):
+        collection = deepzoom.DeepZoomCollection("unused.dzc")
+        assert collection.get_z_order(column, row) >= 0
 
     @given(z=z_orders)
     def test_decode_is_deterministic(self, z):
-        c = deepzoom.DeepZoomCollection("unused.dzc")
-        assert c.get_position(z) == c.get_position(z)
+        collection = deepzoom.DeepZoomCollection("unused.dzc")
+        assert collection.get_position(z) == collection.get_position(z)
 
     @given(z1=z_orders, z2=z_orders)
     def test_different_z_orders_give_different_positions(self, z1, z2):
         assume(z1 != z2)
-        c = deepzoom.DeepZoomCollection("unused.dzc")
-        assert c.get_position(z1) != c.get_position(z2)
+        collection = deepzoom.DeepZoomCollection("unused.dzc")
+        assert collection.get_position(z1) != collection.get_position(z2)
 
 
 # ---- Descriptor properties ----
@@ -71,72 +71,72 @@ class TestMortonProperties:
 class TestDescriptorProperties:
     @given(width=image_dimensions, height=image_dimensions)
     def test_num_levels_at_least_1(self, width, height):
-        d = deepzoom.DeepZoomImageDescriptor(width=width, height=height)
-        assert d.num_levels >= 1
+        descriptor = deepzoom.DeepZoomImageDescriptor(width=width, height=height)
+        assert descriptor.num_levels >= 1
 
     @given(width=image_dimensions, height=image_dimensions)
     def test_level_0_dimensions_are_1x1(self, width, height):
-        d = deepzoom.DeepZoomImageDescriptor(width=width, height=height)
-        assert d.get_dimensions(0) == (1, 1)
+        descriptor = deepzoom.DeepZoomImageDescriptor(width=width, height=height)
+        assert descriptor.get_dimensions(0) == (1, 1)
 
     @given(width=image_dimensions, height=image_dimensions)
     def test_max_level_dimensions_are_original(self, width, height):
-        d = deepzoom.DeepZoomImageDescriptor(width=width, height=height)
-        assert d.get_dimensions(d.num_levels - 1) == (width, height)
+        descriptor = deepzoom.DeepZoomImageDescriptor(width=width, height=height)
+        assert descriptor.get_dimensions(descriptor.num_levels - 1) == (width, height)
 
     @given(width=image_dimensions, height=image_dimensions)
     def test_max_level_scale_is_1(self, width, height):
-        d = deepzoom.DeepZoomImageDescriptor(width=width, height=height)
-        assert d.get_scale(d.num_levels - 1) == 1.0
+        descriptor = deepzoom.DeepZoomImageDescriptor(width=width, height=height)
+        assert descriptor.get_scale(descriptor.num_levels - 1) == 1.0
 
     @given(data=st.data())
     def test_dimensions_monotonically_increase(self, data):
-        d, level = data.draw(valid_descriptor_and_level())
+        descriptor, level = data.draw(valid_descriptor_and_level())
         if level == 0:
             return
-        w_low, h_low = d.get_dimensions(level - 1)
-        w_high, h_high = d.get_dimensions(level)
-        assert w_high >= w_low
-        assert h_high >= h_low
+        width_low, height_low = descriptor.get_dimensions(level - 1)
+        width_high, height_high = descriptor.get_dimensions(level)
+        assert width_high >= width_low
+        assert height_high >= height_low
 
     @given(data=st.data())
     def test_dimensions_at_least_1(self, data):
-        d, level = data.draw(valid_descriptor_and_level())
-        w, h = d.get_dimensions(level)
-        assert w >= 1
-        assert h >= 1
+        descriptor, level = data.draw(valid_descriptor_and_level())
+        width, height = descriptor.get_dimensions(level)
+        assert width >= 1
+        assert height >= 1
 
     @given(data=st.data())
     def test_num_tiles_at_least_1x1(self, data):
-        d, level = data.draw(valid_descriptor_and_level())
-        cols, rows = d.get_num_tiles(level)
-        assert cols >= 1
+        descriptor, level = data.draw(valid_descriptor_and_level())
+        columns, rows = descriptor.get_num_tiles(level)
+        assert columns >= 1
         assert rows >= 1
 
     @given(data=st.data())
     def test_tile_bounds_within_image(self, data):
-        d, level = data.draw(valid_descriptor_and_level())
-        w, h = d.get_dimensions(level)
-        cols, rows = d.get_num_tiles(level)
-        col = data.draw(st.integers(min_value=0, max_value=cols - 1))
+        descriptor, level = data.draw(valid_descriptor_and_level())
+        width, height = descriptor.get_dimensions(level)
+        columns, rows = descriptor.get_num_tiles(level)
+        column = data.draw(st.integers(min_value=0, max_value=columns - 1))
         row = data.draw(st.integers(min_value=0, max_value=rows - 1))
-        x1, y1, x2, y2 = d.get_tile_bounds(level, col, row)
+        x1, y1, x2, y2 = descriptor.get_tile_bounds(level, column, row)
         assert x1 >= 0 and y1 >= 0
-        assert x2 <= w
-        assert y2 <= h
+        assert x2 <= width
+        assert y2 <= height
         assert x2 > x1 and y2 > y1
 
     @given(data=st.data())
     def test_tiles_cover_full_image(self, data):
-        d, level = data.draw(valid_descriptor_and_level())
-        w, h = d.get_dimensions(level)
-        cols, rows = d.get_num_tiles(level)
-        first = d.get_tile_bounds(level, 0, 0)
-        last = d.get_tile_bounds(level, cols - 1, rows - 1)
+        descriptor, level = data.draw(valid_descriptor_and_level())
+        width, height = descriptor.get_dimensions(level)
+        columns, rows = descriptor.get_num_tiles(level)
+        first = descriptor.get_tile_bounds(level, 0, 0)
+        last = descriptor.get_tile_bounds(level, columns - 1, rows - 1)
         assert first[0] == 0
         assert first[1] == 0
-        assert last[2] == w
-        assert last[3] == h
+        assert last[2] == width
+        assert last[3] == height
 
 
 # ---- Collection tile placement properties ----

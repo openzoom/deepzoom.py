@@ -38,9 +38,9 @@ class TestMortonDecode:
         assert collection.get_position(16) == (4, 0)
 
     def test_large_value(self, collection):
-        col, row = collection.get_position(1000)
-        assert col >= 0 and row >= 0
-        assert collection.get_z_order(col, row) == 1000
+        column, row = collection.get_position(1000)
+        assert column >= 0 and row >= 0
+        assert collection.get_z_order(column, row) == 1000
 
 
 class TestMortonEncode:
@@ -64,23 +64,23 @@ class TestMortonRoundtrip:
 
     def test_decode_encode_roundtrip_0_to_255(self, collection):
         for z in range(256):
-            col, row = collection.get_position(z)
-            assert collection.get_z_order(col, row) == z, f"roundtrip failed for z={z}"
+            column, row = collection.get_position(z)
+            assert collection.get_z_order(column, row) == z, f"roundtrip failed for z={z}"
 
     def test_encode_decode_roundtrip_grid(self, collection):
-        for col in range(16):
+        for column in range(16):
             for row in range(16):
-                z = collection.get_z_order(col, row)
-                assert collection.get_position(z) == (col, row), (
-                    f"roundtrip failed for ({col}, {row})"
+                z = collection.get_z_order(column, row)
+                assert collection.get_position(z) == (column, row), (
+                    f"roundtrip failed for ({column}, {row})"
                 )
 
     def test_spatial_locality(self, collection):
         """Consecutive z-order indices within a 4×4 block map to nearby cells."""
         for z in range(15):
-            c1, r1 = collection.get_position(z)
-            c2, r2 = collection.get_position(z + 1)
-            distance = abs(c2 - c1) + abs(r2 - r1)
+            first_column, first_row = collection.get_position(z)
+            second_column, second_row = collection.get_position(z + 1)
+            distance = abs(second_column - first_column) + abs(second_row - first_row)
             assert distance <= 4, (
-                f"z={z}→({c1},{r1}), z={z+1}→({c2},{r2}): Manhattan distance {distance} > 4"
+                f"z={z}→({first_column},{first_row}), z={z+1}→({second_column},{second_row}): Manhattan distance {distance} > 4"
             )

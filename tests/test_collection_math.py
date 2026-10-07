@@ -42,9 +42,9 @@ class TestGetTilePosition:
     def test_tile_positions_are_non_negative(self, collection):
         for z in range(64):
             for level in range(MAX_LEVEL + 1):
-                col, row = collection.get_tile_position(z, level, TILE_SIZE)
-                assert col >= 0 and row >= 0, (
-                    f"z={z} level={level}: negative tile position ({col}, {row})"
+                column, row = collection.get_tile_position(z, level, TILE_SIZE)
+                assert column >= 0 and row >= 0, (
+                    f"z={z} level={level}: negative tile position ({column}, {row})"
                 )
 
 
