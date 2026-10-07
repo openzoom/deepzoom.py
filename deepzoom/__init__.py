@@ -765,6 +765,10 @@ def main():
     if options.resize_filter and options.resize_filter in RESIZE_FILTERS:
         options.resize_filter = RESIZE_FILTERS[options.resize_filter]
 
+    # Pillow’s decompression bomb check guards servers against untrusted input.
+    # Here the user chose the file, and Deep Zoom exists for very large images.
+    PIL.Image.MAX_IMAGE_PIXELS = None
+
     creator = ImageCreator(
         tile_size=options.tile_size,
         tile_format=options.tile_format,

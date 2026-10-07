@@ -35,6 +35,11 @@ cd examples/helloworld/
 ./helloworld-dzc.py
 ```
 
+The command line interface (`python deepzoom/__init__.py image.tif`) lifts
+Pillow’s [decompression bomb][bomb] limit so it can convert very large images.
+The library keeps the limit; to process large trusted images, set
+`PIL.Image.MAX_IMAGE_PIXELS = None` yourself.
+
 ## Acknowledgements
 
 Initially developed by [Kapil Thangavelu](mailto:kapil.foss@gmail.com).
@@ -44,6 +49,7 @@ Powered by [OpenZoom][].
 
 Licensed under the [New BSD Licence][bsd].
 
+[bomb]: https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.open
 [bsd]: http://www.opensource.org/licenses/bsd-license.php
 [openzoom]: http://openzoom.org
 [pil]: http://www.pythonware.com/products/pil
